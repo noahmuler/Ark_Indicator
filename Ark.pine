@@ -16,14 +16,14 @@ asian_color = input.color(color.new(#e91e63, 90), "Asian Color", group=grp_sessi
 grp_fvg = "⚡ Fair Value Gap Settings"
 show_fvg = input.bool(true, "Show FVGs", group=grp_fvg)
 fvg_atr_filter = input.float(1.2, "FVG ATR Filter", 0.0, 5.0, step=0.1, group=grp_fvg)
-fvg_bullish_color = input.color(color.new(#4caf50, 80), "Bullish FVG Color", group=grp_fvg)
-fvg_bearish_color = input.color(color.new(#ff5d00, 80), "Bearish FVG Color", group=grp_fvg)
+fvg_bullish_color = input.color(color.rgb(1, 71, 112, 81), "Bullish FVG Color", group=grp_fvg)
+fvg_bearish_color = input.color(color.rgb(241, 240, 239, 80), "Bearish FVG Color", group=grp_fvg)
 
 grp_ma = "📈 Moving Averages"
 show_ma = input.bool(true, "Show MAs", group=grp_ma)
-ema21_color = input.color(color.yellow, "21 EMA", group=grp_ma)
-sma50_color = input.color(color.blue, "50 SMA", group=grp_ma)
-sma200_color = input.color(color.red, "200 SMA", group=grp_ma)
+ema21_color = input.color(color.blue, "21 EMA", group=grp_ma)
+sma50_color = input.color(color.purple, "50 SMA", group=grp_ma)
+sma200_color = input.color(color.green, "200 SMA", group=grp_ma)
 
 //------------------------------------------------------------------------------
 // Types & Variables
