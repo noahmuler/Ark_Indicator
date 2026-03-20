@@ -28,6 +28,11 @@ nyST    = input.string('New York', '', inline = 'nyam', group = grp_session, dis
 nyS     = input.session('1300-2200', '', inline = 'nyam', group = grp_session, display = disp)
 nyC     = input.color(color.new(#ff5d00, 90), '', inline = 'nyam', group = grp_session)
 
+dwmO    = input.string('None', 'Open Price of', options = ['Killzones', 'the Day', 'the Week', 'the Month', 'None'], inline = 'OP', group = grp_session, display = disp)
+dwmS    = input.bool(true, 'Separator', inline = 'OP', group = grp_session)
+dwmC    = input(color.new(color.gray, 89), '', inline = 'OP', group = grp_session)
+dwmL    = input.bool(true, 'Label', inline = 'OP', group = grp_session)
+
 kzMML   = input(true,   'Killzone Lines : Top/Bottom', inline = 'LN', group = grp_session)
 kzML    = input(false,  'Mean', inline = 'LN', group = grp_session)
 kzLE    = input(true,  'Extend Top/Bottom', inline = 'LN', group = grp_session)
@@ -66,9 +71,16 @@ fvgBC   = input(color.new(color.rgb(1, 71, 112), 80), 'Bullish Imbalance', group
 fvgSC   = input(color.new(color.rgb(241, 240, 239), 80), 'Bearish Imbalance', group = grp_fvg)
 fvgTX   = input.bool(true, 'Show Fair Value Gaps Text', group = grp_fvg)
 
+grp_mss = "🔄 Market Structure Shifts"
+mssSH   = input.bool(false, 'Market Structure Shifts', group = grp_mss)
+mssLN   = input.int(7, "Detection Length", minval = 1, group = grp_mss, display = disp)
+mssDO   = input.string('First', 'Display Market Structure Shifts', options = ['All', 'First', 'Last'], group = grp_mss, display = disp)
+ppLCB   = input.color(color.new(color.teal, 0), 'Market Structure Shifts : Bullish', inline = 'MSS', group = grp_mss)
+ppLCS   = input.color(color.new(color.red, 0), 'Bearish', inline = 'MSS', group = grp_mss)
+mssTX   = input.bool(true, 'Show Market Structure Shifts Text', group = grp_mss)
 grp_ma = " Moving Averages"
-show_ma = input.bool(true, "Show MAs", group=grp_ma)
 ema21_color = input.color(color.blue, "21 EMA", group=grp_ma)
+show_ma = input.bool(true, "Show MAs", group=grp_ma)
 sma50_color = input.color(color.purple, "50 SMA", group=grp_ma)
 sma200_color = input.color(color.green, "200 SMA", group=grp_ma)
 
@@ -192,7 +204,7 @@ pFVG(_s, _h, _l, _c, _i, _atr, _fR, _fE, _fD, _fTX, _fbC, _faC) =>
         bull  = (_l - _h[2]) > _atr and _l > _h[2] and _c[1] > _h[2] and not (bullG or bullG[1])
 
         if bull and xb
-            bFVG.unshift(FVG.new(box.new(_i - 1, _l, _i, _h[2], na, bgcolor = _fbC, text = _fTX ? 'FVG' : '', text_size = size.tiny, text_halign = text.align_center, text_valign = text.align_center, text_color = color.new(_fbC, 0)), true))
+            bFVG.unshift(FVG.new(box.new(_i - 1, _l, _i, _h[2], na, bgcolor = _fbC, text = _fTX ? 'FVG' : '', text_size = size.tiny, text_halign = text.align_center, text_valign = text.align_center, text_color = color.new(_fbC, 0), xloc = xloc.bar_index), true))
             
             if _fD == 'First'
                 xb := false
@@ -205,7 +217,7 @@ pFVG(_s, _h, _l, _c, _i, _atr, _fR, _fE, _fD, _fTX, _fbC, _faC) =>
         bear  = (_l[2] - _h) > _atr and _h < _l[2] and _c[1] < _l[2] and not (bearG or bearG[1])
 
         if bear and xa
-            aFVG.unshift(FVG.new(box.new(_i - 1, _l[2], _i, _h, na, bgcolor = _faC, text = _fTX ? 'FVG' : '', text_size = size.tiny, text_halign = text.align_center, text_valign = text.align_center, text_color = color.new(_faC, 0)), true))
+            aFVG.unshift(FVG.new(box.new(_i - 1, _l[2], _i, _h, na, bgcolor = _faC, text = _fTX ? 'FVG' : '', text_size = size.tiny, text_halign = text.align_center, text_valign = text.align_center, text_color = color.new(_faC, 0), xloc = xloc.bar_index), true))
 
             if _fD == 'First'
                 xa := false
@@ -255,6 +267,20 @@ pFVG(_s, _h, _l, _c, _i, _atr, _fR, _fE, _fD, _fTX, _fbC, _faC) =>
         if aFVG.size() > 0
             for i = aFVG.size() - 1 to 0
                 aFVG.remove(i)
+        na
+
+method pDWM(DWM _id, _tC, _t, _o, _cl, _lbTX, _olL) =>
+    if _tC
+        _id.lb.delete()
+        _id.ln := line.new(_t, _o, _t, _o, xloc.bar_index, extend.none, color.new(_cl, 0), line.style_dotted, 1)
+
+        if _olL
+            _id.lb := label.new(_t, _o, _lbTX + '(' + str.tostring(_o, format.mintick) + ')', xloc.bar_index, yloc.price, color(na), label.style_label_left, color.new(_cl, 0), size.tiny)
+    else
+        _id.ln.set_x2(_t)
+
+        if _olL
+            _id.lb.set_x(_t)
         na
 
 swings(_l)=>
@@ -553,7 +579,7 @@ pOBB(_s, _o, _h, _l, _c, _i, _t, _st, _sb, _mx, _mn, _cOBb, _cBBb, _cOBa, _cBBa,
                             if aLS.max() != bb.bxBB.get_left()
                                 bb.bxBB.set_bgcolor(color(na))
                                 bb.bxBB.set_text_color(color(na))
-                                bb.bxOB.set_border_color(_cBBa)
+                                bb.bxOB.set_border_color(color(na))
 
     else if not _obbE
         if bOB.size() > 0
@@ -576,30 +602,103 @@ pOBB(_s, _o, _h, _l, _c, _i, _t, _st, _sb, _mx, _mn, _cOBb, _cBBb, _cOBa, _cBBa,
 //------------------------------------------------------------------------------
 // Calculations - Killzones
 //------------------------------------------------------------------------------
-kzO = false
+kzO = dwmO == 'Killzones'
 
-kz.killzones(nyam    and timeframe.isintraday, inKZ, b.o, b.h, b.l, b.c, b.t, nyC  , nyST  , kzMML, kzML, kzLB, kzLE, kzO, nyC, false, nyC)
-kz.killzones(ldnO  and timeframe.isintraday, inKZ, b.o, b.h, b.l, b.c, b.t, ldnOC, ldnOST, kzMML, kzML, kzLB, kzLE, kzO, ldnOC, false, ldnOC)
-kz.killzones(ldnC  and timeframe.isintraday, inKZ, b.o, b.h, b.l, b.c, b.t, ldnCC, ldnCST, kzMML, kzML, kzLB, kzLE, kzO, ldnCC, false, ldnCC)
-kz.killzones(asian and timeframe.isintraday, inKZ, b.o, b.h, b.l, b.c, b.t, asC  , asST  , kzMML, kzML, kzLB, kzLE, kzO, asC, false, asC)
+kz.killzones(nyam    and timeframe.isintraday, inKZ, open, high, low, close, time, nyC  , nyST  , kzMML, kzML, kzLB, kzLE, kzO, dwmC, dwmL, nyC)
+kz.killzones(ldnO  and timeframe.isintraday, inKZ, open, high, low, close, time, ldnOC, ldnOST, kzMML, kzML, kzLB, kzLE, kzO, dwmC, dwmL, ldnOC)
+kz.killzones(ldnC  and timeframe.isintraday, inKZ, open, high, low, close, time, ldnCC, ldnCST, kzMML, kzML, kzLB, kzLE, kzO, dwmC, dwmL, ldnCC)
+kz.killzones(asian and timeframe.isintraday, inKZ, open, high, low, close, time, asC  , asST  , kzMML, kzML, kzLB, kzLE, kzO, dwmC, dwmL, asC)
+
+[xChg, xTxt] = switch dwmO
+    'the Day'   => [timeframe.change('D'), 'DO']
+    'the Week'  => [timeframe.change('W'), 'WO']
+    'the Month' => [timeframe.change('M'), 'MO']
+
+if not kzO and timeframe.isintraday and tfM <= kzSH
+    dwm.pDWM(xChg, time, open, dwmC, xTxt, dwmL)
+
+bgcolor(dwmS and not kzO and timeframe.isintraday and tfM <= kzSH ? xChg ? dwmC : na : na)
 
 //------------------------------------------------------------------------------
 // Calculations - Order Blocks & Breaker Blocks
 //------------------------------------------------------------------------------
 
 [top, btm] = swings(obbLN)
-max = useBody ? math.max(b.c, b.o) : b.h
-min = useBody ? math.min(b.c, b.o) : b.l
+max = useBody ? math.max(close, open) : high
+min = useBody ? math.min(close, open) : low
 
 if obSH or bbSH
-    pOBB(inKZ, b.o, b.h, b.l, b.c, b.i, b.t, top, btm, max, min, bullOC, bullBC, bearOC, bearBC, obSH, bbSH, obbMP, obbTX, obbEX, obbSH, obbR)
+    pOBB(inKZ, open, high, low, close, bar_index, time, top, btm, max, min, bullOC, bullBC, bearOC, bearBC, obSH, bbSH, obbMP, obbTX, obbEX, obbSH, obbR)
+
+//------------------------------------------------------------------------------
+// Calculations - Market Structure Shifts
+//------------------------------------------------------------------------------
+
+pp_h = ta.pivothigh(mssLN, mssLN)
+pp_l = ta.pivotlow (mssLN, mssLN)
+
+if not na(pp_h)
+    pp.h  := pp_h
+    pp.hx := false
+    pp.hi := bar_index - mssLN
+
+if not na(pp_l)
+    pp.l  := pp_l
+    pp.lx := false
+    pp.li := bar_index - mssLN
+
+if not inKZ
+    pp.l := 0
+    pp.h := 10e8
+    shift := 0
+
+    if bMSS.size() > 0
+        for i = bMSS.size() - 1 to 0
+            bMSS.remove(i)
+
+    if aMSS.size() > 0
+        for i = aMSS.size() - 1 to 0
+            aMSS.remove(i)
+
+if mssSH and inKZ
+    if close[1] > pp.h and not pp.hx
+        pp.hx := true
+
+        if shift == -1 or shift == 0
+            if (mssDO == 'First' ? bMSS.size() < 1 : true)
+                bMSS.unshift(MSS.new(line.new(pp.hi, pp.h, bar_index - 1, pp.h, color = ppLCB), 
+                 box.new(pp.hi, pp.h, bar_index - 1, pp.h, text = 'CHoCH', text_size = size.tiny, text_halign = text.align_left, text_valign = text.align_bottom, text_color = mssTX ? ppLCB : color(na), bgcolor = color(na), border_color = color(na))
+                 ))
+
+            if bMSS.size() > 1
+                if mssDO == 'Last'
+                    mss = bMSS.pop()
+                    mss.ln.delete(), mss.bx.delete()
+
+        shift := 1
+
+    if close[1] < pp.l and not pp.lx
+        pp.lx := true
+
+        if shift == 1 or shift == 0
+            if (mssDO == 'First' ? aMSS.size() < 1 : true)
+                aMSS.unshift(MSS.new(line.new(pp.li, pp.l, bar_index - 1, pp.l, color = ppLCS), 
+                 box.new(pp.li, pp.l, bar_index - 1, pp.l, text = 'CHoCH', text_size = size.tiny, text_halign = text.align_left, text_valign = text.align_top, text_color = mssTX ? ppLCS : color(na), bgcolor = color(na), border_color = color(na))
+                 ))
+
+            if aMSS.size() > 1
+                if mssDO == 'Last'
+                    mss = aMSS.pop()
+                    mss.ln.delete(), mss.bx.delete()
+
+        shift := -1
 
 //------------------------------------------------------------------------------
 // Calculations - Fair Value Gaps
 //------------------------------------------------------------------------------
 
 if fvgSH 
-    pFVG(inKZ, b.h, b.l, b.c, b.i, fvgATR, fvgR, fvgE, fvgDO, fvgTX, fvgBC, fvgSC)
+    pFVG(inKZ, high, low, close, bar_index, fvgATR, fvgR, fvgE, fvgDO, fvgTX, fvgBC, fvgSC)
 
 //------------------------------------------------------------------------------
 // Moving Averages
