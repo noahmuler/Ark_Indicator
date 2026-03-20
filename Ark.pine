@@ -7,27 +7,36 @@ indicator("Ark Indicator", overlay=true, max_lines_count=500, max_labels_count=5
 disp    = display.all - display.status_line
 
 grp_session = "🕐 Session Settings"
-sessionColor = input(color.new(color.white, 90), 'Session Color', inline = 'asia', group = grp_session)
+sessionColor = input(color.new(color.white, 90), 'Session Color', inline = 'sydney', group = grp_session)
+sydneySH = input(true, '', inline = 'sydney', group = grp_session)
+sydneyST = input.string('Sydney', '', inline = 'sydney', group = grp_session, display = disp)
+sydneyS  = input.session('2100-0600', '', inline = 'sydney', group = grp_session, display = disp)
+sydneyC  = sessionColor
+
 asSH    = input(true, '', inline = 'asia', group = grp_session)
-asST    = input.string('Asian', '', inline = 'asia', group = grp_session, display = disp)
-asS     = input.session('2300-0800', '', inline = 'asia', group = grp_session, display = disp)
+asST    = input.string('Asia', '', inline = 'asia', group = grp_session, display = disp)
+asS     = input.session('2300-0900', '', inline = 'asia', group = grp_session, display = disp)
 asC     = sessionColor
 
 ldnOSH  = input(true, '', inline = 'ldno', group = grp_session)
 ldnOST  = input.string('London', '', inline = 'ldno', group = grp_session, display = disp)
-ldnOS   = input.session('0800-1700', '', inline = 'ldno', group = grp_session, display = disp)
+ldnOS   = input.session('0800-1200', '', inline = 'ldno', group = grp_session, display = disp)
 ldnOC   = sessionColor
 
-// Added the missing London Close / PM variables
-ldnCSH  = input(false, '', inline = 'ldnc', group = grp_session)
-ldnCST  = input.string('London PM', '', inline = 'ldnc', group = grp_session, display = disp)
-ldnCS   = input.session('1200-1500', '', inline = 'ldnc', group = grp_session, display = disp)
-ldnCC   = sessionColor
-
 nySH    = input(true,   '', inline = 'nyam', group = grp_session)
-nyST    = input.string('New York', '', inline = 'nyam', group = grp_session, display = disp)
-nyS     = input.session('1300-2200', '', inline = 'nyam', group = grp_session, display = disp)
+nyST    = input.string('NY AM', '', inline = 'nyam', group = grp_session, display = disp)
+nyS     = input.session('1300-1700', '', inline = 'nyam', group = grp_session, display = disp)
 nyC     = sessionColor
+
+nyPMH   = input(true,   '', inline = 'nypm', group = grp_session)
+nyPMST   = input.string('NY PM', '', inline = 'nypm', group = grp_session, display = disp)
+nyPMS   = input.session('1700-2100', '', inline = 'nypm', group = grp_session, display = disp)
+nyPMC   = sessionColor
+
+marketCloseSH = input(true, '', inline = 'close', group = grp_session)
+marketCloseST = input.string('Market Close', '', inline = 'close', group = grp_session, display = disp)
+marketCloseS  = input.session('2100-2200', '', inline = 'close', group = grp_session, display = disp)
+marketCloseC  = input.color(color.new(color.red, 90), '', inline = 'close', group = grp_session)
 
 dwmO    = input.string('None', 'Open Price of', options = ['Killzones', 'the Day', 'the Week', 'the Month', 'None'], inline = 'OP', group = grp_session, display = disp)
 dwmS    = input.bool(true, 'Separator', inline = 'OP', group = grp_session)
@@ -99,7 +108,7 @@ type bar
 type OB
     float top  = na
     float btm  = na
-    int   obI  = na  // Will store time value, not bar_index
+    int   obI  = na  // Will store bar_index for fixed positioning
     box   bxOB
     bool  ext  = true
 
@@ -108,7 +117,7 @@ type BB
     box   bxBB
     bool  ext  = true
     bool  bb   = false
-    int   bbI  = na  // Will store time value, not bar_index
+    int   bbI  = na  // Will store bar_index for fixed positioning
     int   lst  = na
 
 type swing
@@ -151,12 +160,14 @@ type FVG
 bar b = bar.new()
 tfM = timeframe.multiplier
 
-nyam    = not na(time(timeframe.period, nyS  , 'UTC-5')) and nySH   and tfM <= kzSH
-ldnO  = not na(time(timeframe.period, ldnOS, 'UTC-5')) and ldnOSH and tfM <= kzSH
-ldnC  = not na(time(timeframe.period, ldnCS, 'UTC-5')) and ldnCSH and tfM <= kzSH
-asian = not na(time(timeframe.period, asS  , 'UTC-5')) and asSH   and tfM <= kzSH
+sydney   = not na(time(timeframe.period, sydneyS , 'UTC-5')) and sydneySH and tfM <= kzSH
+asian    = not na(time(timeframe.period, asS     , 'UTC-5')) and asSH    and tfM <= kzSH
+london   = not na(time(timeframe.period, ldnOS   , 'UTC-5')) and ldnOSH  and tfM <= kzSH
+nyam     = not na(time(timeframe.period, nyS     , 'UTC-5')) and nySH    and tfM <= kzSH
+nypm     = not na(time(timeframe.period, nyPMS   , 'UTC-5')) and nyPMH   and tfM <= kzSH
+marketClose = not na(time(timeframe.period, marketCloseS, 'UTC-5')) and marketCloseSH and tfM <= kzSH
 
-inKZ  = nyam or ldnO or ldnC or asian
+inKZ  = sydney or asian or london or nyam or nypm or marketClose
 var KZ kz = KZ.new()
 
 var DWM dwm = DWM.new()
@@ -412,36 +423,37 @@ pOBB(_s, _o, _h, _l, _c, _i, _t, _st, _sb, _mx, _mn, _cOBb, _cBBb, _cOBa, _cBBa,
 
             minima = _mx[1]
             maxima = _mn[1]
-            sBT = _t[1]
+            sBI = _i[1]  // Store bar_index for fixed positioning
 
             for i = 1 to (_i - _st.i) - 1
                 minima := math.min(_mn[i], minima)
                 maxima := minima == _mn[i] ? _mx[i] : maxima
-                sBT := minima == _mn[i] ? _t[i] : sBT
+                sBI := minima == _mn[i] ? _i[i] : sBI
             
-            bOB.unshift(OB.new(maxima, minima, sBT, 
-                         box.new(na, na, na, na, color(na), xloc = xloc.bar_time, text = _obbTX ? 'OB' : '', text_size = size.tiny, text_halign = text.align_center, text_valign = text.align_center, text_color = color.new(_cOBb, 0)))) 
+            bOB.unshift(OB.new(maxima, minima, sBI, 
+                         box.new(na, na, na, na, color(na), text = _obbTX ? 'OB' : '', text_size = size.tiny, text_halign = text.align_center, text_valign = text.align_center, text_color = color.new(_cOBb, 0)))) 
             bBB.unshift(BB.new(
-                         box.new(na, na, na, na, color(na), xloc = xloc.bar_time), 
-                         box.new(na, na, na, na, color(na), xloc = xloc.bar_time, text = _obbTX ? 'BB' : '', text_size = size.tiny, text_halign = text.align_center, text_valign = text.align_center, text_color = color.new(_cBBb, 0))))
+                         box.new(na, na, na, na, color(na)), 
+                         box.new(na, na, na, na, color(na), text = _obbTX ? 'BB' : '', text_size = size.tiny, text_halign = text.align_center, text_valign = text.align_center, text_color = color.new(_cBBb, 0))))
             
         if _c[1] < _sb.y and not _sb.x and _st.i >= sbI 
             _sb.x := true
 
             minima = _mn[1]
             maxima = _mx[1]
-            sBT = _t[1]
+            sBI = _i[1]
 
             for i = 1 to (_i - _sb.i) - 1
                 maxima := math.max(_mx[i], maxima)
                 minima := maxima == _mx[i] ? _mn[i] : minima
-                sBT := maxima == _mx[i] ? _t[i] : sBT
+                sBI := maxima == _mx[i] ? _i[i] : sBI
 
-            aOB.unshift(OB.new(maxima, minima, sBT, 
-                         box.new(na, na, na, na, color(na), xloc = xloc.bar_time, text = _obbTX ? 'OB' : '', text_size = size.tiny, text_halign = text.align_center, text_valign = text.align_center, text_color = color.new(_cOBa, 0)))) 
+            aOB.unshift(OB.new(maxima, minima, sBI, 
+                         box.new(na, na, na, na, color(na), text = _obbTX ? 'OB' : '', text_size = size.tiny, text_halign = text.align_center, text_valign = text.align_center, text_color = color.new(_cOBa, 0)))) 
             aBB.unshift(BB.new(
-                         box.new(na, na, na, na, color(na), xloc = xloc.bar_time), 
-                         box.new(na, na, na, na, color(na), xloc = xloc.bar_time, text = _obbTX ? 'BB' : '', text_size = size.tiny, text_halign = text.align_center, text_valign = text.align_center, text_color = color.new(_cBBa, 0))))
+                         box.new(na, na, na, na, color(na)), 
+                         box.new(na, na, na, na, color(na), text = _obbTX ? 'BB' : '', text_size = size.tiny, text_halign = text.align_center, text_valign = text.align_center, text_color = color.new(_cBBa, 0))
+                         ))
 
     if _obbE ? true : _s
 
@@ -461,7 +473,7 @@ pOBB(_s, _o, _h, _l, _c, _i, _t, _st, _sb, _mx, _mn, _cOBb, _cBBb, _cOBa, _cBBa,
                 if not bb.bb 
                     if _obS and (_obbD == 'First' ? i == bOB.size() - 1 : true)
                         ob.bxOB.set_lefttop(ob.obI, ob.top)
-                        ob.bxOB.set_rightbottom(_t, ob.btm)
+                        ob.bxOB.set_rightbottom(_i, ob.btm)
                         ob.bxOB.set_bgcolor((_obbD == 'Last' ? i == 0 ? _cOBb : color(na): _cOBb))
                         ob.bxOB.set_text_color((_obbD == 'Last' ? i == 0 ? color.new(_cOBb, 0) : color(na): color.new(_cOBb, 0)))
 
@@ -469,13 +481,13 @@ pOBB(_s, _o, _h, _l, _c, _i, _t, _st, _sb, _mx, _mn, _cOBb, _cBBb, _cOBa, _cBBa,
                         bb.bb := true
 
                         if _obS
-                            ob.bxOB.set_right(_t[1])
+                            ob.bxOB.set_right(_i[1])
                             ob.ext := false
 
                         if _bbS and xb
-                            bb.bbI := _t[1]
+                            bb.bbI := _i[1]
                             bb.bxBB.set_lefttop(bb.bbI, ob.top)
-                            bb.bxBB.set_rightbottom(_t, ob.btm)
+                            bb.bxBB.set_rightbottom(_i, ob.btm)
                             bb.bxBB.set_bgcolor(_cBBb)
 
                             if not _obS or _obbR or not (_obbD == 'First' ? i == bOB.size() - 1 : true)
@@ -499,7 +511,7 @@ pOBB(_s, _o, _h, _l, _c, _i, _t, _st, _sb, _mx, _mn, _cOBb, _cBBb, _cOBa, _cBBa,
                         ob.bxOB.set_text_color((_obbD == 'Last' ? i == 0 ? color.new(_cOBb, 0) : color(na): color.new(_cOBb, 0)))
 
                     if _bbS and bb.ext
-                        bb.bxBB.set_right(_t)
+                        bb.bxBB.set_right(_i)
 
                     if _bbS
                         if _obbD == 'Last'
@@ -530,7 +542,7 @@ pOBB(_s, _o, _h, _l, _c, _i, _t, _st, _sb, _mx, _mn, _cOBb, _cBBb, _cOBa, _cBBa,
                 if not bb.bb 
                     if _obS and (_obbD == 'First' ? i == aOB.size() - 1 : true)
                         ob.bxOB.set_lefttop(ob.obI, ob.top)
-                        ob.bxOB.set_rightbottom(_t, ob.btm)
+                        ob.bxOB.set_rightbottom(_i, ob.btm)
                         ob.bxOB.set_bgcolor((_obbD == 'Last' ? i == 0 ? _cOBa : color(na) : _cOBa))
                         ob.bxOB.set_text_color((_obbD == 'Last' ? i == 0 ? color.new(_cOBa, 0) : color(na): color.new(_cOBa, 0)))
 
@@ -538,13 +550,13 @@ pOBB(_s, _o, _h, _l, _c, _i, _t, _st, _sb, _mx, _mn, _cOBb, _cBBb, _cOBa, _cBBa,
                         bb.bb := true
 
                         if _obS
-                            ob.bxOB.set_right(_t[1])
+                            ob.bxOB.set_right(_i)
                             ob.ext := false
 
                         if _bbS and xa
-                            bb.bbI := _t[1]
+                            bb.bbI := _i
                             bb.bxBB.set_lefttop(bb.bbI, ob.top)
-                            bb.bxBB.set_rightbottom(_t, ob.btm)
+                            bb.bxBB.set_rightbottom(_i, ob.btm)
                             bb.bxBB.set_bgcolor(_cBBa)
 
                             if not _obS or _obbR or not (_obbD == 'First' ? i == aOB.size() - 1 : true)
@@ -567,7 +579,7 @@ pOBB(_s, _o, _h, _l, _c, _i, _t, _st, _sb, _mx, _mn, _cOBb, _cBBb, _cOBa, _cBBa,
                         ob.bxOB.set_text_color((_obbD == 'Last' ? i == 0 ? color.new(_cOBa, 0) : color(na): color.new(_cOBa, 0)))
 
                     if _bbS and bb.ext 
-                        bb.bxBB.set_right(_t)
+                        bb.bxBB.set_right(_i)
                     
                     if _bbS
                         if _obbD == 'Last'
@@ -600,15 +612,16 @@ pOBB(_s, _o, _h, _l, _c, _i, _t, _st, _sb, _mx, _mn, _cOBb, _cBBb, _cOBa, _cBBa,
                 aBB.remove(i)
         na
 
-//------------------------------------------------------------------------------
 // Calculations - Killzones
 //------------------------------------------------------------------------------
 kzO = dwmO == 'Killzones'
 
-kz.killzones(nyam    and timeframe.isintraday, inKZ, open, high, low, close, time, nyC  , nyST  , kzMML, kzML, kzLB, kzLE, kzO, dwmC, dwmL, nyC)
-kz.killzones(ldnO  and timeframe.isintraday, inKZ, open, high, low, close, time, ldnOC, ldnOST, kzMML, kzML, kzLB, kzLE, kzO, dwmC, dwmL, ldnOC)
-kz.killzones(ldnC  and timeframe.isintraday, inKZ, open, high, low, close, time, ldnCC, ldnCST, kzMML, kzML, kzLB, kzLE, kzO, dwmC, dwmL, ldnCC)
-kz.killzones(asian and timeframe.isintraday, inKZ, open, high, low, close, time, asC  , asST  , kzMML, kzML, kzLB, kzLE, kzO, dwmC, dwmL, asC)
+kz.killzones(sydney   and timeframe.isintraday, inKZ, open, high, low, close, time, sydneyC , sydneyST , kzMML, kzML, kzLB, kzLE, kzO, dwmC, dwmL, sydneyC)
+kz.killzones(asian    and timeframe.isintraday, inKZ, open, high, low, close, time, asC    , asST    , kzMML, kzML, kzLB, kzLE, kzO, dwmC, dwmL, asC)
+kz.killzones(london   and timeframe.isintraday, inKZ, open, high, low, close, time, ldnOC  , ldnOST , kzMML, kzML, kzLB, kzLE, kzO, dwmC, dwmL, ldnOC)
+kz.killzones(nyam     and timeframe.isintraday, inKZ, open, high, low, close, time, nyC    , nyST    , kzMML, kzML, kzLB, kzLE, kzO, dwmC, dwmL, nyC)
+kz.killzones(nypm     and timeframe.isintraday, inKZ, open, high, low, close, time, nyPMC  , nyPMST , kzMML, kzML, kzLB, kzLE, kzO, dwmC, dwmL, nyPMC)
+kz.killzones(marketClose and timeframe.isintraday, inKZ, open, high, low, close, time, marketCloseC, marketCloseST, kzMML, kzML, kzLB, kzLE, kzO, dwmC, dwmL, marketCloseC)
 
 [xChg, xTxt] = switch dwmO
     'the Day'   => [timeframe.change('D'), 'DO']
@@ -726,6 +739,6 @@ if barstate.islast
     table.cell(tbl, 0, 1, "RSI (14)", text_color=color.white)
     table.cell(tbl, 1, 1, str.tostring(math.round(rsi_v, 2)), text_color=rsi_v > 70 ? color.red : rsi_v < 30 ? color.green : color.white)
     
-    current_session = nyam ? "New York" : ldnO ? "London" : ldnC ? "London PM" : asian ? "Asian" : "None"
+    current_session = nyam ? "NY AM" : nypm ? "NY PM" : london ? "London" : asian ? "Asia" : sydney ? "Sydney" : marketClose ? "Market Close" : "None"
     table.cell(tbl, 0, 2, "Session", text_color=color.white)
     table.cell(tbl, 1, 2, current_session, text_color=color.white)
