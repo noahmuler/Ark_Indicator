@@ -7,26 +7,27 @@ indicator("Ark Indicator", overlay=true, max_lines_count=500, max_labels_count=5
 disp    = display.all - display.status_line
 
 grp_session = "🕐 Session Settings"
+sessionColor = input(color.new(color.white, 90), 'Session Color', inline = 'asia', group = grp_session)
 asSH    = input(true, '', inline = 'asia', group = grp_session)
 asST    = input.string('Asian', '', inline = 'asia', group = grp_session, display = disp)
 asS     = input.session('2300-0800', '', inline = 'asia', group = grp_session, display = disp)
-asC     = input.color(color.new(#e91e63, 90), '', inline = 'asia', group = grp_session)
+asC     = sessionColor
 
 ldnOSH  = input(true, '', inline = 'ldno', group = grp_session)
 ldnOST  = input.string('London', '', inline = 'ldno', group = grp_session, display = disp)
 ldnOS   = input.session('0800-1700', '', inline = 'ldno', group = grp_session, display = disp)
-ldnOC   = input.color(color.new(#00bcd4, 90), '', inline = 'ldno', group = grp_session)
+ldnOC   = sessionColor
 
 // Added the missing London Close / PM variables
 ldnCSH  = input(false, '', inline = 'ldnc', group = grp_session)
 ldnCST  = input.string('London PM', '', inline = 'ldnc', group = grp_session, display = disp)
 ldnCS   = input.session('1200-1500', '', inline = 'ldnc', group = grp_session, display = disp)
-ldnCC   = input.color(color.new(#8e24aa, 90), '', inline = 'ldnc', group = grp_session)
+ldnCC   = sessionColor
 
 nySH    = input(true,   '', inline = 'nyam', group = grp_session)
 nyST    = input.string('New York', '', inline = 'nyam', group = grp_session, display = disp)
 nyS     = input.session('1300-2200', '', inline = 'nyam', group = grp_session, display = disp)
-nyC     = input.color(color.new(#ff5d00, 90), '', inline = 'nyam', group = grp_session)
+nyC     = sessionColor
 
 dwmO    = input.string('None', 'Open Price of', options = ['Killzones', 'the Day', 'the Week', 'the Month', 'None'], inline = 'OP', group = grp_session, display = disp)
 dwmS    = input.bool(true, 'Separator', inline = 'OP', group = grp_session)
@@ -98,7 +99,7 @@ type bar
 type OB
     float top  = na
     float btm  = na
-    int   obI  = bar_index
+    int   obI  = na  // Will store time value, not bar_index
     box   bxOB
     bool  ext  = true
 
@@ -107,7 +108,7 @@ type BB
     box   bxBB
     bool  ext  = true
     bool  bb   = false
-    int   bbI  = na
+    int   bbI  = na  // Will store time value, not bar_index
     int   lst  = na
 
 type swing
@@ -204,7 +205,7 @@ pFVG(_s, _h, _l, _c, _i, _atr, _fR, _fE, _fD, _fTX, _fbC, _faC) =>
         bull  = (_l - _h[2]) > _atr and _l > _h[2] and _c[1] > _h[2] and not (bullG or bullG[1])
 
         if bull and xb
-            bFVG.unshift(FVG.new(box.new(_i - 1, _l, _i, _h[2], na, bgcolor = _fbC, text = _fTX ? 'FVG' : '', text_size = size.tiny, text_halign = text.align_center, text_valign = text.align_center, text_color = color.new(_fbC, 0), xloc = xloc.bar_index), true))
+            bFVG.unshift(FVG.new(box.new(_i - 1, _l, _i, _h[2], na, bgcolor = _fbC, text = _fTX ? 'FVG' : '', text_size = size.tiny, text_halign = text.align_center, text_valign = text.align_center, text_color = color.new(_fbC, 0)), true))
             
             if _fD == 'First'
                 xb := false
@@ -217,7 +218,7 @@ pFVG(_s, _h, _l, _c, _i, _atr, _fR, _fE, _fD, _fTX, _fbC, _faC) =>
         bear  = (_l[2] - _h) > _atr and _h < _l[2] and _c[1] < _l[2] and not (bearG or bearG[1])
 
         if bear and xa
-            aFVG.unshift(FVG.new(box.new(_i - 1, _l[2], _i, _h, na, bgcolor = _faC, text = _fTX ? 'FVG' : '', text_size = size.tiny, text_halign = text.align_center, text_valign = text.align_center, text_color = color.new(_faC, 0), xloc = xloc.bar_index), true))
+            aFVG.unshift(FVG.new(box.new(_i - 1, _l[2], _i, _h, na, bgcolor = _faC, text = _fTX ? 'FVG' : '', text_size = size.tiny, text_halign = text.align_center, text_valign = text.align_center, text_color = color.new(_faC, 0)), true))
 
             if _fD == 'First'
                 xa := false
@@ -272,10 +273,10 @@ pFVG(_s, _h, _l, _c, _i, _atr, _fR, _fE, _fD, _fTX, _fbC, _faC) =>
 method pDWM(DWM _id, _tC, _t, _o, _cl, _lbTX, _olL) =>
     if _tC
         _id.lb.delete()
-        _id.ln := line.new(_t, _o, _t, _o, xloc.bar_index, extend.none, color.new(_cl, 0), line.style_dotted, 1)
+        _id.ln := line.new(_t, _o, _t, _o, xloc.bar_time, extend.none, color.new(_cl, 0), line.style_dotted, 1)
 
         if _olL
-            _id.lb := label.new(_t, _o, _lbTX + '(' + str.tostring(_o, format.mintick) + ')', xloc.bar_index, yloc.price, color(na), label.style_label_left, color.new(_cl, 0), size.tiny)
+            _id.lb := label.new(_t, _o, _lbTX + '(' + str.tostring(_o, format.mintick) + ')', xloc.bar_time, yloc.price, color(na), label.style_label_left, color.new(_cl, 0), size.tiny)
     else
         _id.ln.set_x2(_t)
 
@@ -698,7 +699,7 @@ if mssSH and inKZ
 //------------------------------------------------------------------------------
 
 if fvgSH 
-    pFVG(inKZ, high, low, close, bar_index, fvgATR, fvgR, fvgE, fvgDO, fvgTX, fvgBC, fvgSC)
+    pFVG(true, high, low, close, bar_index, fvgATR, fvgR, fvgE, fvgDO, fvgTX, fvgBC, fvgSC)
 
 //------------------------------------------------------------------------------
 // Moving Averages
