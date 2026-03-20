@@ -1,0 +1,125 @@
+//@version=6
+indicator("Ark Indicator", overlay=true, max_lines_count=500, max_labels_count=500, max_boxes_count=500, max_bars_back=500)
+
+//------------------------------------------------------------------------------
+// Settings
+//------------------------------------------------------------------------------
+grp_session = "🕐 Session Settings"
+show_sessions = input.bool(true, "Show Sessions", group=grp_session)
+london_session = input.string('0800-1700', "London Session (UTC-5)", group=grp_session)
+newyork_session = input.string('1300-2200', "New York Session (UTC-5)", group=grp_session)
+asian_session = input.string('2300-0800', "Asian Session (UTC-5)", group=grp_session)
+london_color = input.color(color.new(#00bcd4, 90), "London Color", group=grp_session)
+newyork_color = input.color(color.new(#ff5d00, 90), "New York Color", group=grp_session)
+asian_color = input.color(color.new(#e91e63, 90), "Asian Color", group=grp_session)
+
+grp_fvg = "⚡ Fair Value Gap Settings"
+show_fvg = input.bool(true, "Show FVGs", group=grp_fvg)
+fvg_atr_filter = input.float(1.2, "FVG ATR Filter", 0.0, 5.0, step=0.1, group=grp_fvg)
+fvg_bullish_color = input.color(color.new(#4caf50, 80), "Bullish FVG Color", group=grp_fvg)
+fvg_bearish_color = input.color(color.new(#ff5d00, 80), "Bearish FVG Color", group=grp_fvg)
+
+grp_ma = "📈 Moving Averages"
+show_ma = input.bool(true, "Show MAs", group=grp_ma)
+ema21_color = input.color(color.yellow, "21 EMA", group=grp_ma)
+sma50_color = input.color(color.blue, "50 SMA", group=grp_ma)
+sma200_color = input.color(color.red, "200 SMA", group=grp_ma)
+
+//------------------------------------------------------------------------------
+// Types & Variables
+//------------------------------------------------------------------------------
+type FVG
+    box   bx
+    bool  e
+
+// Arrays for FVGs
+var bFVG = array.new<FVG>(0)
+var aFVG = array.new<FVG>(0)
+
+is_london  = not na(time(timeframe.period, london_session, "UTC-5")) and show_sessions
+is_newyork = not na(time(timeframe.period, newyork_session, "UTC-5")) and show_sessions
+is_asian   = not na(time(timeframe.period, asian_session, "UTC-5")) and show_sessions
+in_session = is_london or is_newyork or is_asian
+
+//------------------------------------------------------------------------------
+// Logic
+//------------------------------------------------------------------------------
+ema21 = ta.ema(close, 21)
+sma50 = ta.sma(close, 50)
+sma200 = ta.sma(close, 200)
+
+plot(show_ma ? ema21 : na, "21 EMA", color=ema21_color)
+plot(show_ma ? sma50 : na, "50 SMA", color=sma50_color)
+plot(show_ma ? sma200 : na, "200 SMA", color=sma200_color)
+
+// FVG Detection
+atr = ta.atr(14)
+if show_fvg and in_session
+    // Bullish FVG
+    if low > high[2] and (low - high[2]) > (atr * fvg_atr_filter)
+        box_fvg = box.new(bar_index[2], low, bar_index, high[2], bgcolor=fvg_bullish_color, border_color=na)
+        bFVG.push(FVG.new(box_fvg, true))
+    
+    // Bearish FVG
+    if high < low[2] and (low[2] - high) > (atr * fvg_atr_filter)
+        box_fvg = box.new(bar_index[2], low[2], bar_index, high, bgcolor=fvg_bearish_color, border_color=na)
+        aFVG.push(FVG.new(box_fvg, true))
+
+// FVG Extension and Mitigation Logic
+if show_fvg
+    // Bullish FVGs
+    if bFVG.size() > 0 
+        for i = bFVG.size() - 1 to 0
+            fvg  = bFVG.get(i)
+            fvgB = fvg.bx.get_bottom()
+
+            if fvg.e
+                isBelowBottom = low < fvgB
+                if isBelowBottom
+                    fvg.bx.set_right(bar_index)
+                    fvg.e := false
+                else
+                    fvg.bx.set_right(bar_index)
+            else
+                fvg.bx.set_right(bar_index)
+
+    // Bearish FVGs
+    if aFVG.size() > 0
+        for i = aFVG.size() - 1 to 0
+            fvg  = aFVG.get(i)
+            fvgT = fvg.bx.get_top()
+
+            if fvg.e
+                isAboveTop = high > fvgT
+                if isAboveTop
+                    fvg.bx.set_right(bar_index)
+                    fvg.e := false
+                else
+                    fvg.bx.set_right(bar_index)
+            else
+                fvg.bx.set_right(bar_index)
+
+bgcolor(show_sessions and is_london ? london_color : na)
+bgcolor(show_sessions and is_newyork ? newyork_color : na)
+bgcolor(show_sessions and is_asian ? asian_color : na)
+
+//------------------------------------------------------------------------------
+// Dashboard & Indicators
+//------------------------------------------------------------------------------
+// Calculate RSI globally so it has historical data
+rsi_v = ta.rsi(close, 14)
+
+if barstate.islast
+    var tbl = table.new(position.top_right, 2, 4, bgcolor=color.new(color.black, 20), border_width=1)
+    
+    table.cell(tbl, 0, 0, "Asset", text_color=color.white)
+    table.cell(tbl, 1, 0, syminfo.ticker, text_color=color.white)
+    
+    table.cell(tbl, 0, 1, "RSI (14)", text_color=color.white)
+    // Now we just use the 'rsi_v' variable we calculated above
+    table.cell(tbl, 1, 1, str.tostring(math.round(rsi_v, 2)), text_color=rsi_v > 70 ? color.red : rsi_v < 30 ? color.green : color.white)
+    
+    // Add current session for quick reference
+    current_session = is_london ? "London" : is_newyork ? "New York" : is_asian ? "Asian" : "None"
+    table.cell(tbl, 0, 2, "Session", text_color=color.white)
+    table.cell(tbl, 1, 2, current_session, text_color=color.white)
