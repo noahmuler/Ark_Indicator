@@ -10,32 +10,32 @@ grp_session = "🕐 Session Settings"
 sessionColor = input(color.new(color.white, 90), 'Session Color', inline = 'sydney', group = grp_session)
 sydneySH = input(true, '', inline = 'sydney', group = grp_session)
 sydneyST = input.string('Sydney', '', inline = 'sydney', group = grp_session, display = disp)
-sydneyS  = input.session('2100-0600', '', inline = 'sydney', group = grp_session, display = disp)
+sydneyS  = input.session('1700-0200', '', inline = 'sydney', group = grp_session, display = disp)
 sydneyC  = sessionColor
 
 asSH    = input(true, '', inline = 'asia', group = grp_session)
 asST    = input.string('Asia', '', inline = 'asia', group = grp_session, display = disp)
-asS     = input.session('2300-0900', '', inline = 'asia', group = grp_session, display = disp)
+asS     = input.session('1900-0400', '', inline = 'asia', group = grp_session, display = disp)
 asC     = sessionColor
 
 ldnOSH  = input(true, '', inline = 'ldno', group = grp_session)
 ldnOST  = input.string('London', '', inline = 'ldno', group = grp_session, display = disp)
-ldnOS   = input.session('0800-1200', '', inline = 'ldno', group = grp_session, display = disp)
+ldnOS   = input.session('0300-0700', '', inline = 'ldno', group = grp_session, display = disp)
 ldnOC   = sessionColor
 
 nySH    = input(true,   '', inline = 'nyam', group = grp_session)
 nyST    = input.string('NY AM', '', inline = 'nyam', group = grp_session, display = disp)
-nyS     = input.session('1300-1700', '', inline = 'nyam', group = grp_session, display = disp)
+nyS     = input.session('0800-1200', '', inline = 'nyam', group = grp_session, display = disp)
 nyC     = sessionColor
 
 nyPMH   = input(true,   '', inline = 'nypm', group = grp_session)
 nyPMST   = input.string('NY PM', '', inline = 'nypm', group = grp_session, display = disp)
-nyPMS   = input.session('1700-2100', '', inline = 'nypm', group = grp_session, display = disp)
+nyPMS   = input.session('1200-1600', '', inline = 'nypm', group = grp_session, display = disp)
 nyPMC   = sessionColor
 
 marketCloseSH = input(true, '', inline = 'close', group = grp_session)
 marketCloseST = input.string('Market Close', '', inline = 'close', group = grp_session, display = disp)
-marketCloseS  = input.session('2100-2200', '', inline = 'close', group = grp_session, display = disp)
+marketCloseS  = input.session('1600-1700', '', inline = 'close', group = grp_session, display = disp)
 marketCloseC  = input.color(color.new(color.red, 90), '', inline = 'close', group = grp_session)
 
 dwmO    = input.string('None', 'Open Price of', options = ['Killzones', 'the Day', 'the Week', 'the Month', 'None'], inline = 'OP', group = grp_session, display = disp)
@@ -160,12 +160,12 @@ type FVG
 bar b = bar.new()
 tfM = timeframe.multiplier
 
-sydney   = not na(time(timeframe.period, sydneyS , 'UTC-5')) and sydneySH and tfM <= kzSH
-asian    = not na(time(timeframe.period, asS     , 'UTC-5')) and asSH    and tfM <= kzSH
-london   = not na(time(timeframe.period, ldnOS   , 'UTC-5')) and ldnOSH  and tfM <= kzSH
-nyam     = not na(time(timeframe.period, nyS     , 'UTC-5')) and nySH    and tfM <= kzSH
-nypm     = not na(time(timeframe.period, nyPMS   , 'UTC-5')) and nyPMH   and tfM <= kzSH
-marketClose = not na(time(timeframe.period, marketCloseS, 'UTC-5')) and marketCloseSH and tfM <= kzSH
+sydney   = not na(time(timeframe.period, sydneyS , 'UTC-4')) and sydneySH and tfM <= kzSH
+asian    = not na(time(timeframe.period, asS     , 'UTC-4')) and asSH    and tfM <= kzSH
+london   = not na(time(timeframe.period, ldnOS   , 'UTC-4')) and ldnOSH  and tfM <= kzSH
+nyam     = not na(time(timeframe.period, nyS     , 'UTC-4')) and nySH    and tfM <= kzSH
+nypm     = not na(time(timeframe.period, nyPMS   , 'UTC-4')) and nyPMH   and tfM <= kzSH
+marketClose = not na(time(timeframe.period, marketCloseS, 'UTC-4')) and marketCloseSH and tfM <= kzSH
 
 inKZ  = sydney or asian or london or nyam or nypm or marketClose
 var KZ kz = KZ.new()
