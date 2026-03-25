@@ -57,9 +57,9 @@ extTT   = 'In this context, "extend" refers to the action of projecting or elong
 obbEX   = input.bool(true, 'Extend Order Blocks & Breaker Blocks', group = grp_ob, tooltip = extTT)
 obbSH   = input.string('First', 'Display Order Blocks & Breaker Blocks', options = ['All', 'First', 'Last'], group = grp_ob, display = disp)
 
-bullOC  = input(color.new(color.rgb(1, 71, 112), 80), 'Order Blocks  : Bullish'   , inline = 'OBC', group = grp_ob)
-bearOC  = input(color.new(color.rgb(241, 240, 239), 80), 'Bearish'   , inline = 'OBC', group = grp_ob)
-bullBC  = input(color.new(#ff1100, 80), 'Breaker Blocks : Bullish', inline = 'BBC', group = grp_ob)
+bullOC  = input(color.new(#02c80a, 90), 'Order Blocks  : Bullish'   , inline = 'OBC', group = grp_ob)
+bearOC  = input(color.new(#5e2395, 80), 'Bearish'   , inline = 'OBC', group = grp_ob)
+bullBC  = input(color.new(#ff1100, 90), 'Breaker Blocks : Bullish', inline = 'BBC', group = grp_ob)
 bearBC  = input(color.new(#0cb51a, 80), 'Bearish', inline = 'BBC', group = grp_ob)
 obbTX   = input.bool(true, 'Show Order Blocks & Breaker Blocks Text', group = grp_ob)
 
