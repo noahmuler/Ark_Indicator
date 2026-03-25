@@ -7,7 +7,7 @@ indicator("Ark Indicator", overlay=true, max_lines_count=500, max_labels_count=5
 disp    = display.all - display.status_line
 
 grp_session = "🕐 Session Settings"
-sessionColor = input(color.new(color.white, 90), 'Session Color', inline = 'sydney', group = grp_session)
+sessionColor = input(color.new(#ffffff, 96), 'Session Color', inline = 'sydney', group = grp_session)
 sydneySH = input(true, '', inline = 'sydney', group = grp_session)
 sydneyST = input.string('Sydney', '', inline = 'sydney', group = grp_session, display = disp)
 sydneyS  = input.session('1700-0200', '', inline = 'sydney', group = grp_session, display = disp)
@@ -32,11 +32,6 @@ nyPMH   = input(true,   '', inline = 'nypm', group = grp_session)
 nyPMST   = input.string('NY PM', '', inline = 'nypm', group = grp_session, display = disp)
 nyPMS   = input.session('1200-1600', '', inline = 'nypm', group = grp_session, display = disp)
 nyPMC   = sessionColor
-
-marketCloseSH = input(true, '', inline = 'close', group = grp_session)
-marketCloseST = input.string('Market Close', '', inline = 'close', group = grp_session, display = disp)
-marketCloseS  = input.session('1600-1700', '', inline = 'close', group = grp_session, display = disp)
-marketCloseC  = input.color(color.new(color.red, 90), '', inline = 'close', group = grp_session)
 
 dwmO    = input.string('None', 'Open Price of', options = ['Killzones', 'the Day', 'the Week', 'the Month', 'None'], inline = 'OP', group = grp_session, display = disp)
 dwmS    = input.bool(true, 'Separator', inline = 'OP', group = grp_session)
@@ -77,22 +72,23 @@ fvgTH   = input.float(1.2, 'Fair Value Gap Width Filter', minval = 0, step = .1,
 fvgR    = input.bool(true, 'Remove Mitigated Fair Value Gaps', group = grp_fvg)
 fvgE    = input.bool(true, 'Extend Fair Value Gaps', group = grp_fvg, tooltip = extTT)
 fvgDO   = input.string('First', 'Display Fair Value Gaps', options = ['All', 'First', 'Last'], group = grp_fvg, display = disp)
-fvgBC   = input(color.new(color.rgb(1, 71, 112), 80), 'Bullish Imbalance', group = grp_fvg)
-fvgSC   = input(color.new(color.rgb(241, 240, 239), 80), 'Bearish Imbalance', group = grp_fvg)
+fvgBC   = input(color.new(#02c80a, 0), 'Bullish Imbalance', group = grp_fvg)
+fvgSC   = input(color.new(#5e2395, 0), 'Bearish Imbalance', group = grp_fvg)
 fvgTX   = input.bool(true, 'Show Fair Value Gaps Text', group = grp_fvg)
 
 grp_mss = "🔄 Market Structure Shifts"
+mssTX   = input.bool(true, 'Show Market Structure Shifts Text', group = grp_mss)
 mssSH   = input.bool(false, 'Market Structure Shifts', group = grp_mss)
 mssLN   = input.int(7, "Detection Length", minval = 1, group = grp_mss, display = disp)
 mssDO   = input.string('First', 'Display Market Structure Shifts', options = ['All', 'First', 'Last'], group = grp_mss, display = disp)
-ppLCB   = input.color(color.new(color.teal, 0), 'Market Structure Shifts : Bullish', inline = 'MSS', group = grp_mss)
-ppLCS   = input.color(color.new(color.red, 0), 'Bearish', inline = 'MSS', group = grp_mss)
-mssTX   = input.bool(true, 'Show Market Structure Shifts Text', group = grp_mss)
+ppLCB   = input.color(color.new(#02c80a, 0), 'Market Structure Shifts : Bullish', inline = 'MSS', group = grp_mss)
+ppLCS   = input.color(color.new(#5e2395, 0), 'Bearish', inline = 'MSS', group = grp_mss)
+
 grp_ma = " Moving Averages"
-ema21_color = input.color(color.blue, "21 EMA", group=grp_ma)
 show_ma = input.bool(true, "Show MAs", group=grp_ma)
-sma50_color = input.color(color.purple, "50 SMA", group=grp_ma)
-sma200_color = input.color(color.green, "200 SMA", group=grp_ma)
+ema21_color = input.color(color.blue, "21 EMA", group=grp_ma)
+sma50_color = input.color(color.new(#5e2395, 0), "50 SMA", group=grp_ma)
+sma200_color = input.color(color.new(#02c80a, 0), "200 SMA", group=grp_ma)
 
 //------------------------------------------------------------------------------
 // User Defined Types
@@ -165,9 +161,7 @@ asian    = not na(time(timeframe.period, asS     , 'UTC-4')) and asSH    and tfM
 london   = not na(time(timeframe.period, ldnOS   , 'UTC-4')) and ldnOSH  and tfM <= kzSH
 nyam     = not na(time(timeframe.period, nyS     , 'UTC-4')) and nySH    and tfM <= kzSH
 nypm     = not na(time(timeframe.period, nyPMS   , 'UTC-4')) and nyPMH   and tfM <= kzSH
-marketClose = not na(time(timeframe.period, marketCloseS, 'UTC-4')) and marketCloseSH and tfM <= kzSH
-
-inKZ  = sydney or asian or london or nyam or nypm or marketClose
+inKZ  = sydney or asian or london or nyam or nypm
 var KZ kz = KZ.new()
 
 var DWM dwm = DWM.new()
@@ -621,7 +615,6 @@ kz.killzones(asian    and timeframe.isintraday, inKZ, open, high, low, close, ti
 kz.killzones(london   and timeframe.isintraday, inKZ, open, high, low, close, time, ldnOC  , ldnOST , kzMML, kzML, kzLB, kzLE, kzO, dwmC, dwmL, ldnOC)
 kz.killzones(nyam     and timeframe.isintraday, inKZ, open, high, low, close, time, nyC    , nyST    , kzMML, kzML, kzLB, kzLE, kzO, dwmC, dwmL, nyC)
 kz.killzones(nypm     and timeframe.isintraday, inKZ, open, high, low, close, time, nyPMC  , nyPMST , kzMML, kzML, kzLB, kzLE, kzO, dwmC, dwmL, nyPMC)
-kz.killzones(marketClose and timeframe.isintraday, inKZ, open, high, low, close, time, marketCloseC, marketCloseST, kzMML, kzML, kzLB, kzLE, kzO, dwmC, dwmL, marketCloseC)
 
 [xChg, xTxt] = switch dwmO
     'the Day'   => [timeframe.change('D'), 'DO']
@@ -739,6 +732,6 @@ if barstate.islast
     table.cell(tbl, 0, 1, "RSI (14)", text_color=color.white)
     table.cell(tbl, 1, 1, str.tostring(math.round(rsi_v, 2)), text_color=rsi_v > 70 ? color.red : rsi_v < 30 ? color.green : color.white)
     
-    current_session = nyam ? "NY AM" : nypm ? "NY PM" : london ? "London" : asian ? "Asia" : sydney ? "Sydney" : marketClose ? "Market Close" : "None"
+    current_session = nyam ? "NY AM" : nypm ? "NY PM" : london ? "London" : asian ? "Asia" : sydney ? "Sydney" : "None"
     table.cell(tbl, 0, 2, "Session", text_color=color.white)
     table.cell(tbl, 1, 2, current_session, text_color=color.white)
