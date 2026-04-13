@@ -203,77 +203,115 @@ pFVG(_s, _h, _l, _c, _i, _atr, _fR, _fE, _fD, _fTX, _fbC, _faC) =>
                 for i = aFVG.size() - 1 to 0
                     aFVG.remove(i)
 
+    // Enhanced FVG detection logic from Inspiration2.pine
     bullG = _l > _h[1]
     bearG = _h < _l[1]
 
     if _s
+        // Bullish FVG: Low > High[2] with stronger conditions
         bull  = (_l - _h[2]) > _atr and _l > _h[2] and _c[1] > _h[2] and not (bullG or bullG[1])
-
+        
         if bull and xb
-            bFVG.unshift(FVG.new(box.new(_i - 1, _l, _i, _h[2], na, bgcolor = _fbC, text = _fTX ? 'FVG' : '', text_size = size.tiny, text_halign = text.align_center, text_valign = text.align_center, text_color = color.new(_fbC, 0)), true))
+            // Create two boxes for better visualization like Inspiration2
+            fvg_top = box.new(_i - 1, _l, _i, math.avg(_l, _h[2]), bgcolor = _fbC, border_color = _fbC, text = _fTX ? 'FVG' : '', text_size = size.tiny, text_halign = text.align_center, text_valign = text.align_center, text_color = _fbC)
+            fvg_btm = box.new(_i - 1, math.avg(_l, _h[2]), _i, _h[2], bgcolor = _fbC, border_color = _fbC, text = _fTX ? 'FVG' : '', text_size = size.tiny, text_halign = text.align_center, text_valign = text.align_center, text_color = _fbC)
+            bFVG.unshift(FVG.new(fvg_top, true))
+            bFVG.unshift(FVG.new(fvg_btm, true))
             
             if _fD == 'First'
                 xb := false
         
-            if bFVG.size() > 1
+            if bFVG.size() > 2
                 if _fD == 'Last'
-                    fvg = bFVG.pop()
-                    fvg.bx.delete()
+                    // Remove last two FVG boxes
+                    fvg1 = bFVG.pop()
+                    if not na(fvg1.bx)
+                        fvg1.bx.delete()
+                    fvg2 = bFVG.pop()
+                    if not na(fvg2.bx)
+                        fvg2.bx.delete()
 
+        // Bearish FVG: High < Low[2] with stronger conditions  
         bear  = (_l[2] - _h) > _atr and _h < _l[2] and _c[1] < _l[2] and not (bearG or bearG[1])
-
+        
         if bear and xa
-            aFVG.unshift(FVG.new(box.new(_i - 1, _l[2], _i, _h, na, bgcolor = _faC, text = _fTX ? 'FVG' : '', text_size = size.tiny, text_halign = text.align_center, text_valign = text.align_center, text_color = color.new(_faC, 0)), true))
+            // Create two boxes for better visualization like Inspiration2
+            fvg_top = box.new(_i - 1, _h, _i, math.avg(_h, _l[2]), bgcolor = _faC, border_color = _faC, text = _fTX ? 'FVG' : '', text_size = size.tiny, text_halign = text.align_center, text_valign = text.align_center, text_color = _faC)
+            fvg_btm = box.new(_i - 1, math.avg(_h, _l[2]), _i, _l[2], bgcolor = _faC, border_color = _faC, text = _fTX ? 'FVG' : '', text_size = size.tiny, text_halign = text.align_center, text_valign = text.align_center, text_color = _faC)
+            aFVG.unshift(FVG.new(fvg_top, true))
+            aFVG.unshift(FVG.new(fvg_btm, true))
 
             if _fD == 'First'
                 xa := false
 
-            if aFVG.size() > 1
+            if aFVG.size() > 2
                 if _fD == 'Last'
-                    fvg = aFVG.pop()
-                    fvg.bx.delete()
+                    // Remove last two FVG boxes
+                    fvg3 = aFVG.pop()
+                    if not na(fvg3.bx)
+                        fvg3.bx.delete()
+                    fvg4 = aFVG.pop()
+                    if not na(fvg4.bx)
+                        fvg4.bx.delete()
 
+    // Enhanced FVG extension and mitigation logic
     if _fE ? true : _s
+        // Process bullish FVGs
         if bFVG.size() > 0 
             for i = bFVG.size() - 1 to 0
                 fvg  = bFVG.get(i)
-                fvgB = fvg.bx.get_bottom()
+                if not na(fvg.bx)
+                    fvgB = fvg.bx.get_bottom()
+                    fvgT = fvg.bx.get_top()
 
-                if fvg.e
-                    if _l < fvgB
-                        fvg.bx.set_right(_i)
-
+                    // Check if FVG should be mitigated
+                    bool isMitigated = fvg.e and _h < fvgB
+                    
+                    if isMitigated
+                        // FVG mitigated
                         if _fR
                             fvg.bx.delete()
                         fvg.e := false
-                    else
+                    
+                    if not isMitigated and fvg.e
+                        // Extend FVG to current bar
                         fvg.bx.set_right(_i)
 
+        // Process bearish FVGs
         if aFVG.size() > 0
             for i = aFVG.size() - 1 to 0
                 fvg  = aFVG.get(i)
-                fvgT = fvg.bx.get_top()
+                if not na(fvg.bx) and not na(fvg.bx.get_top())
+                    fvgT = fvg.bx.get_top()
+                    fvgB = fvg.bx.get_bottom()
 
-                if fvg.e
-                    if _h > fvgT
-                        fvg.bx.set_right(_i)
-
+                    // Check if FVG should be mitigated and handle accordingly
+                    bool isMitigated = fvg.e and _h > fvgT
+                    
+                    if isMitigated
+                        // FVG mitigated
                         if _fR
                             fvg.bx.delete()
                         fvg.e := false
-                        na
-                    else
+                    
+                    if not isMitigated and fvg.e
+                        // Extend FVG to current bar
                         fvg.bx.set_right(_i)
 
     else if not _fE
         if bFVG.size() > 0
             for i = bFVG.size() - 1 to 0
-                bFVG.remove(i)
+                fvg = bFVG.get(i)
+                if not na(fvg.bx) and not na(fvg.bx.get_top())
+                    fvg.bx.delete()
+            bFVG.clear()
 
         if aFVG.size() > 0
             for i = aFVG.size() - 1 to 0
-                aFVG.remove(i)
-        na
+                fvg = aFVG.get(i)
+                if not na(fvg.bx) and not na(fvg.bx.get_top())
+                    fvg.bx.delete()
+            aFVG.clear()
 
 method pDWM(DWM _id, _tC, _t, _o, _cl, _lbTX, _olL) =>
     if _tC
@@ -724,14 +762,14 @@ plot(show_ma ? sma200 : na, "200 SMA", color=sma200_color)
 rsi_v = ta.rsi(close, 14)
 
 if barstate.islast
-    var tbl = table.new(position.top_right, 2, 4, bgcolor=color.new(color.black, 20), border_width=1)
+    var tbl = table.new(position.top_right, 6, 1, bgcolor=color.new(#363a45, 100), border_width=1)
     
-    table.cell(tbl, 0, 0, "Asset", text_color=color.white)
-    table.cell(tbl, 1, 0, syminfo.ticker, text_color=color.white)
+    table.cell(tbl, 0, 0, "Asset", text_color=color.rgb(255, 255, 255, 50))
+    table.cell(tbl, 1, 0, syminfo.ticker, text_color=color.blue)
     
-    table.cell(tbl, 0, 1, "RSI (14)", text_color=color.white)
-    table.cell(tbl, 1, 1, str.tostring(math.round(rsi_v, 2)), text_color=rsi_v > 70 ? color.red : rsi_v < 30 ? color.green : color.white)
+    table.cell(tbl, 2, 0, "RSI (14)", text_color=color.rgb(255, 255, 255, 50))
+    table.cell(tbl, 3, 0, str.tostring(math.round(rsi_v, 2)), text_color=rsi_v > 70 ? color.red : rsi_v < 30 ? color.green : color.blue)
     
-    current_session = nyam ? "NY AM" : nypm ? "NY PM" : london ? "London" : asian ? "Asia" : sydney ? "Sydney" : "None"
-    table.cell(tbl, 0, 2, "Session", text_color=color.white)
-    table.cell(tbl, 1, 2, current_session, text_color=color.white)
+    current_session = nyam ? "NY AM" : nypm ? "NY PM" : london ? "London" : asian ? "Asia" : sydney ? "Sydney" : "KitKat"
+    table.cell(tbl, 4, 0, "Session", text_color=color.rgb(255, 255, 255, 50))
+    table.cell(tbl, 5, 0, current_session, text_color=color.blue)

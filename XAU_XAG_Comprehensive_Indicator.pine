@@ -282,10 +282,10 @@ detect_fvg(_s, _h, _l, _c, _i, _atr) =>
     bullG = (low[1]) > (high[1])
     bearG = (high[1]) < (low[1])
 
-    if _s
-        bull  = (_l - (high[2])) > _atr and _l > (high[2]) and (close[1]) > (high[2]) and not (bullG or bullG[1])
+    bull = _s and ((_l - (high[2])) > _atr and _l > (high[2]) and (close[1]) > (high[2]) and not (bullG or bullG[1]))
+    bear = _s and (((low[2]) - _h) > _atr and _h < (low[2]) and (close[1]) < (low[2]) and not (bearG or bearG[1]))
 
-        if bull and xb
+    if bull and xb
             bFVG.unshift(FVG.new(box.new(_i - 1, _l, _i, (high[2]), na, bgcolor = fvg_bullish_color, text = fvg_show_text ? 'FVG' : '', text_size = size.tiny, text_halign = text.align_center, text_valign = text.align_center, text_color = color.new(fvg_bullish_color, 0)), true))
             
             if fvg_display == 'First'
@@ -295,8 +295,6 @@ detect_fvg(_s, _h, _l, _c, _i, _atr) =>
                 if fvg_display == 'Last'
                     fvg = bFVG.pop()
                     fvg.bx.delete()
-
-        bear  = ((low[2]) - _h) > _atr and _h < (low[2]) and (close[1]) < (low[2]) and not (bearG or bearG[1])
 
         if bear and xa
             aFVG.unshift(FVG.new(box.new(_i - 1, (low[2]), _i, _h, na, bgcolor = fvg_bearish_color, text = fvg_show_text ? 'FVG' : '', text_size = size.tiny, text_halign = text.align_center, text_valign = text.align_center, text_color = color.new(fvg_bearish_color, 0)), true))
