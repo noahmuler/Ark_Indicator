@@ -213,8 +213,24 @@ pFVG(_s, _h, _l, _c, _i, _atr, _fR, _fE, _fD, _fTX, _fbC, _faC) =>
         
         if bull and xb
             // Create two boxes for better visualization like Inspiration2
-            fvg_top = box.new(_i - 1, _l, _i, math.avg(_l, _h[2]), bgcolor = _fbC, border_color = _fbC, text = _fTX ? 'FVG' : '', text_size = size.tiny, text_halign = text.align_center, text_valign = text.align_center, text_color = _fbC)
-            fvg_btm = box.new(_i - 1, math.avg(_l, _h[2]), _i, _h[2], bgcolor = _fbC, border_color = _fbC, text = _fTX ? 'FVG' : '', text_size = size.tiny, text_halign = text.align_center, text_valign = text.align_center, text_color = _fbC)
+            fvg_top = box.new(
+     _i - 1, _l, _i, math.avg(_l, _h[2]),
+     bgcolor = _fbC,
+     border_color = _fbC,
+     text = _fTX ? 'Bull FVG' : '',
+     text_size = size.tiny,
+     text_halign = text.align_center,
+     text_valign = text.align_center,
+     text_color = color.white)
+            fvg_btm = box.new(
+     _i - 1, math.avg(_l, _h[2]), _i, _h[2],
+     bgcolor = _fbC,
+     border_color = _fbC,
+     text = _fTX ? 'Bull FVG' : '',
+     text_size = size.tiny,
+     text_halign = text.align_center,
+     text_valign = text.align_center,
+     text_color = color.white)
             bFVG.unshift(FVG.new(fvg_top, true))
             bFVG.unshift(FVG.new(fvg_btm, true))
             
@@ -236,8 +252,24 @@ pFVG(_s, _h, _l, _c, _i, _atr, _fR, _fE, _fD, _fTX, _fbC, _faC) =>
         
         if bear and xa
             // Create two boxes for better visualization like Inspiration2
-            fvg_top = box.new(_i - 1, _h, _i, math.avg(_h, _l[2]), bgcolor = _faC, border_color = _faC, text = _fTX ? 'FVG' : '', text_size = size.tiny, text_halign = text.align_center, text_valign = text.align_center, text_color = _faC)
-            fvg_btm = box.new(_i - 1, math.avg(_h, _l[2]), _i, _l[2], bgcolor = _faC, border_color = _faC, text = _fTX ? 'FVG' : '', text_size = size.tiny, text_halign = text.align_center, text_valign = text.align_center, text_color = _faC)
+            fvg_top = box.new(
+     _i - 1, _h, _i, math.avg(_h, _l[2]),
+     bgcolor = _faC,
+     border_color = _faC,
+     text = _fTX ? 'Bear FVG' : '',
+     text_size = size.tiny,
+     text_halign = text.align_center,
+     text_valign = text.align_center,
+     text_color = color.white)
+            fvg_btm = box.new(
+     _i - 1, math.avg(_h, _l[2]), _i, _l[2],
+     bgcolor = _faC,
+     border_color = _faC,
+     text = _fTX ? 'Bear FVG' : '',
+     text_size = size.tiny,
+     text_halign = text.align_center,
+     text_valign = text.align_center,
+     text_color = color.white)
             aFVG.unshift(FVG.new(fvg_top, true))
             aFVG.unshift(FVG.new(fvg_btm, true))
 
