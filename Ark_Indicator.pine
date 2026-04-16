@@ -76,13 +76,30 @@ fvgBC   = input(color.new(#02c80a, 0), 'Bullish Imbalance', group = grp_fvg)
 fvgSC   = input(color.new(#5e2395, 0), 'Bearish Imbalance', group = grp_fvg)
 fvgTX   = input.bool(true, 'Show Fair Value Gaps Text', group = grp_fvg)
 
+grp_eq = "⚖️ Equal Highs/Lows Settings"
+eqhSH   = input.bool(true, 'Equal Highs/Lows', group = grp_eq)
+eqLen   = input.int(3, 'Bars Confirmation', minval = 1, group = grp_eq)
+eqTH    = input.float(0.1, 'Threshold (ATR mult)', minval = 0, maxval = 0.5, step = 0.05, group = grp_eq, tooltip = 'Lower = stricter (fewer EQs)')
+eqhCss  = input.color(color.new(#f23645, 0), 'EQH Color', inline = 'EQ', group = grp_eq)
+eqlCss  = input.color(color.new(#089981, 0), 'EQL Color', inline = 'EQ', group = grp_eq)
+
+var eq_prev_top = 0., var eq_top_x = 0, var eq_prev_btm = 0., var eq_btm_x = 0
+
 grp_mss = "🔄 Market Structure Shifts"
 mssTX   = input.bool(true, 'Show Market Structure Shifts Text', group = grp_mss)
-mssSH   = input.bool(false, 'Market Structure Shifts', group = grp_mss)
+mssSH   = input.bool(true, 'Market Structure Shifts', group = grp_mss)
+mssAlign = input.string('top_center', 'MSS Label Position', options=['top_left', 'top_center', 'top_right'], group = grp_mss)
 mssLN   = input.int(7, "Detection Length", minval = 1, group = grp_mss, display = disp)
 mssDO   = input.string('First', 'Display Market Structure Shifts', options = ['All', 'First', 'Last'], group = grp_mss, display = disp)
 ppLCB   = input.color(color.new(#02c80a, 0), 'Market Structure Shifts : Bullish', inline = 'MSS', group = grp_mss)
 ppLCS   = input.color(color.new(#5e2395, 0), 'Bearish', inline = 'MSS', group = grp_mss)
+
+grp_mog = "📊 Market Open Gaps"
+mogSH = input.bool(true, 'Market Open Gaps', group = grp_mog)
+mogBC = input.color(color.new(#00ff68, 70), 'Bullish MOG', group = grp_mog)
+mogSC = input.color(color.new(#ff0008, 70), 'Bearish MOG', group = grp_mog)
+mogE = input.bool(true, 'Extend MOG', group = grp_mog)
+mogTX = input.bool(true, 'Show MOG Text', group = grp_mog)
 
 grp_ma = " Moving Averages"
 show_ma = input.bool(true, "Show MAs", group=grp_ma)
@@ -144,7 +161,7 @@ type DWM
 
 type MSS
     line  ln
-    box   bx
+    label lb
 
 type FVG
     box   bx
@@ -185,165 +202,88 @@ var bFVG = array.new<FVG>(0)
 var aFVG = array.new<FVG>(0)
 fvgATR = nz(ta.atr(144)) * fvgTH
 
+var bMOG = array.new<box>(0)
+var aMOG = array.new<box>(0)
+
 //------------------------------------------------------------------------------
 // Functions / Methods
 //------------------------------------------------------------------------------
 pFVG(_s, _h, _l, _c, _i, _atr, _fR, _fE, _fD, _fTX, _fbC, _faC) =>
-    bool xb = false
-    bool xa = false
-
+    // Clean FVG logic inspired by clark_smc.pine
+    // Single box per gap, proper mitigation (low <= bottom bull, high >= top bear)
+    
+    var bool bull_first = true, var bool bear_first = true
+    
     if _s and not _s[1]
-        xb := true, xa := true
+        bull_first := true
+        bear_first := true
         if _fE
-            if bFVG.size() > 0
-                for i = bFVG.size() - 1 to 0
-                    bFVG.remove(i)
+            array.clear(bFVG)
+            array.clear(aFVG)
 
-            if aFVG.size() > 0
-                for i = aFVG.size() - 1 to 0
-                    aFVG.remove(i)
+    bullGap = _l > _h[2] 
+    bearGap = _h < _l[2]
 
-    // Enhanced FVG detection logic from Inspiration2.pine
-    bullG = _l > _h[1]
-    bearG = _h < _l[1]
-
-    if _s
-        // Bullish FVG: Low > High[2] with stronger conditions
-        bull  = (_l - _h[2]) > _atr and _l > _h[2] and _c[1] > _h[2] and not (bullG or bullG[1])
+    if bullGap and _s and bull_first
+        gap_top = _l
+        gap_bottom = _h[2]
+        fvg_box = box.new(_i-2, gap_top, _i, gap_bottom, 
+            bgcolor=_fbC, border_color=_fbC,
+            text=_fTX ? 'FVG' : na, text_size=size.tiny,
+            text_color=color.white, text_halign=text.align_center)
+        array.unshift(bFVG, FVG.new(fvg_box, true))
         
-        if bull and xb
-            // Create two boxes for better visualization like Inspiration2
-            fvg_top = box.new(
-     _i - 1, _l, _i, math.avg(_l, _h[2]),
-     bgcolor = _fbC,
-     border_color = _fbC,
-     text = _fTX ? 'Bull FVG' : '',
-     text_size = size.tiny,
-     text_halign = text.align_center,
-     text_valign = text.align_center,
-     text_color = color.white)
-            fvg_btm = box.new(
-     _i - 1, math.avg(_l, _h[2]), _i, _h[2],
-     bgcolor = _fbC,
-     border_color = _fbC,
-     text = _fTX ? 'Bull FVG' : '',
-     text_size = size.tiny,
-     text_halign = text.align_center,
-     text_valign = text.align_center,
-     text_color = color.white)
-            bFVG.unshift(FVG.new(fvg_top, true))
-            bFVG.unshift(FVG.new(fvg_btm, true))
-            
-            if _fD == 'First'
-                xb := false
+        if _fD == 'First'
+            bull_first := false
+
+    if bearGap and _s and bear_first
+        gap_top = _l[2]
+        gap_bottom = _h
+        fvg_box = box.new(_i-2, gap_top, _i, gap_bottom, 
+            bgcolor=_faC, border_color=_faC,
+            text=_fTX ? 'FVG' : na, text_size=size.tiny,
+            text_color=color.white, text_halign=text.align_center)
+        array.unshift(aFVG, FVG.new(fvg_box, true))
         
-            if bFVG.size() > 2
-                if _fD == 'Last'
-                    // Remove last two FVG boxes
-                    fvg1 = bFVG.pop()
-                    if not na(fvg1.bx)
-                        fvg1.bx.delete()
-                    fvg2 = bFVG.pop()
-                    if not na(fvg2.bx)
-                        fvg2.bx.delete()
+        if _fD == 'First'
+            bear_first := false
 
-        // Bearish FVG: High < Low[2] with stronger conditions  
-        bear  = (_l[2] - _h) > _atr and _h < _l[2] and _c[1] < _l[2] and not (bearG or bearG[1])
-        
-        if bear and xa
-            // Create two boxes for better visualization like Inspiration2
-            fvg_top = box.new(
-     _i - 1, _h, _i, math.avg(_h, _l[2]),
-     bgcolor = _faC,
-     border_color = _faC,
-     text = _fTX ? 'Bear FVG' : '',
-     text_size = size.tiny,
-     text_halign = text.align_center,
-     text_valign = text.align_center,
-     text_color = color.white)
-            fvg_btm = box.new(
-     _i - 1, math.avg(_h, _l[2]), _i, _l[2],
-     bgcolor = _faC,
-     border_color = _faC,
-     text = _fTX ? 'Bear FVG' : '',
-     text_size = size.tiny,
-     text_halign = text.align_center,
-     text_valign = text.align_center,
-     text_color = color.white)
-            aFVG.unshift(FVG.new(fvg_top, true))
-            aFVG.unshift(FVG.new(fvg_btm, true))
-
-            if _fD == 'First'
-                xa := false
-
-            if aFVG.size() > 2
-                if _fD == 'Last'
-                    // Remove last two FVG boxes
-                    fvg3 = aFVG.pop()
-                    if not na(fvg3.bx)
-                        fvg3.bx.delete()
-                    fvg4 = aFVG.pop()
-                    if not na(fvg4.bx)
-                        fvg4.bx.delete()
-
-    // Enhanced FVG extension and mitigation logic
-    if _fE ? true : _s
-        // Process bullish FVGs
-        if bFVG.size() > 0 
-            for i = bFVG.size() - 1 to 0
-                fvg  = bFVG.get(i)
+    // Extension and mitigation
+    if _fE or _s
+        // Bullish FVGs mitigation: low <= gap_bottom
+        if array.size(bFVG) > 0
+            for j = array.size(bFVG) - 1 to 0
+                fvg = array.get(bFVG, j)
                 if not na(fvg.bx)
-                    fvgB = fvg.bx.get_bottom()
-                    fvgT = fvg.bx.get_top()
-
-                    // Check if FVG should be mitigated
-                    bool isMitigated = fvg.e and _h < fvgB
+                    fvg_bottom = box.get_bottom(fvg.bx)
+                    mitigated = fvg.e and _l <= fvg_bottom
                     
-                    if isMitigated
-                        // FVG mitigated
+                    if mitigated
                         if _fR
-                            fvg.bx.delete()
+                            box.delete(fvg.bx)
                         fvg.e := false
-                    
-                    if not isMitigated and fvg.e
-                        // Extend FVG to current bar
-                        fvg.bx.set_right(_i)
+                    else if fvg.e
+                        box.set_right(fvg.bx, _i)
 
-        // Process bearish FVGs
-        if aFVG.size() > 0
-            for i = aFVG.size() - 1 to 0
-                fvg  = aFVG.get(i)
-                if not na(fvg.bx) and not na(fvg.bx.get_top())
-                    fvgT = fvg.bx.get_top()
-                    fvgB = fvg.bx.get_bottom()
-
-                    // Check if FVG should be mitigated and handle accordingly
-                    bool isMitigated = fvg.e and _h > fvgT
+        // Bearish FVGs mitigation: high >= gap_top  
+        if array.size(aFVG) > 0
+            for j = array.size(aFVG) - 1 to 0
+                fvg = array.get(aFVG, j)
+                if not na(fvg.bx)
+                    fvg_top = box.get_top(fvg.bx)
+                    mitigated = fvg.e and _h >= fvg_top
                     
-                    if isMitigated
-                        // FVG mitigated
+                    if mitigated
                         if _fR
-                            fvg.bx.delete()
+                            box.delete(fvg.bx)
                         fvg.e := false
-                    
-                    if not isMitigated and fvg.e
-                        // Extend FVG to current bar
-                        fvg.bx.set_right(_i)
+                    else if fvg.e
+                        box.set_right(fvg.bx, _i)
 
-    else if not _fE
-        if bFVG.size() > 0
-            for i = bFVG.size() - 1 to 0
-                fvg = bFVG.get(i)
-                if not na(fvg.bx) and not na(fvg.bx.get_top())
-                    fvg.bx.delete()
-            bFVG.clear()
-
-        if aFVG.size() > 0
-            for i = aFVG.size() - 1 to 0
-                fvg = aFVG.get(i)
-                if not na(fvg.bx) and not na(fvg.bx.get_top())
-                    fvg.bx.delete()
-            aFVG.clear()
+    // Cleanup if not extending
+    if not _fE
+        array.clear(bFVG)
+        array.clear(aFVG)
 
 method pDWM(DWM _id, _tC, _t, _o, _cl, _lbTX, _olL) =>
     if _tC
@@ -465,21 +405,10 @@ pOBB(_s, _o, _h, _l, _c, _i, _t, _st, _sb, _mx, _mn, _cOBb, _cBBb, _cOBa, _cBBa,
         sbI := _i, xb := true, xa := true
         
         if _obbE
-            if bOB.size() > 0
-                for i = bOB.size() - 1 to 0
-                    bOB.remove(i)
-
-            if aOB.size() > 0
-                for i = aOB.size() - 1 to 0
-                    aOB.remove(i)
-
-            if bBB.size() > 0
-                for i = bBB.size() - 1 to 0
-                    bBB.remove(i)
-
-            if aBB.size() > 0
-                for i = aBB.size() - 1 to 0
-                    aBB.remove(i)
+            array.clear(bOB)
+            array.clear(aOB)
+            array.clear(bBB)
+            array.clear(aBB)
 
     if _s
         if _c[1] > _st.y and not _st.x and _st.i >= sbI
@@ -499,7 +428,7 @@ pOBB(_s, _o, _h, _l, _c, _i, _t, _st, _sb, _mx, _mn, _cOBb, _cBBb, _cOBa, _cBBa,
             bBB.unshift(BB.new(
                          box.new(na, na, na, na, color(na)), 
                          box.new(na, na, na, na, color(na), text = _obbTX ? 'BB' : '', text_size = size.tiny, text_halign = text.align_center, text_valign = text.align_center, text_color = color.new(_cBBb, 0))))
-            
+
         if _c[1] < _sb.y and not _sb.x and _st.i >= sbI 
             _sb.x := true
 
@@ -728,29 +657,25 @@ if not inKZ
     pp.l := 0
     pp.h := 10e8
     shift := 0
-
-    if bMSS.size() > 0
-        for i = bMSS.size() - 1 to 0
-            bMSS.remove(i)
-
-    if aMSS.size() > 0
-        for i = aMSS.size() - 1 to 0
-            aMSS.remove(i)
+    array.clear(bMSS)
+    array.clear(aMSS)
 
 if mssSH and inKZ
     if close[1] > pp.h and not pp.hx
         pp.hx := true
 
         if shift == -1 or shift == 0
+            label_style = mssAlign == 'Center' ? label.style_label_center : mssAlign == 'Right' ? label.style_label_right : label.style_label_left
             if (mssDO == 'First' ? bMSS.size() < 1 : true)
                 bMSS.unshift(MSS.new(line.new(pp.hi, pp.h, bar_index - 1, pp.h, color = ppLCB), 
-                 box.new(pp.hi, pp.h, bar_index - 1, pp.h, text = 'CHoCH', text_size = size.tiny, text_halign = text.align_left, text_valign = text.align_bottom, text_color = mssTX ? ppLCB : color(na), bgcolor = color(na), border_color = color(na))
-                 ))
+                 label.new(bar_index - 1, pp.h, 'CHoCH', xloc.bar_index, yloc.price, color.new(color.white, 100), 
+                     style = label_style, 
+                     textcolor=mssTX ? ppLCB : color(na), size=size.tiny)))
 
             if bMSS.size() > 1
                 if mssDO == 'Last'
                     mss = bMSS.pop()
-                    mss.ln.delete(), mss.bx.delete()
+                    mss.ln.delete(), mss.lb.delete()
 
         shift := 1
 
@@ -758,15 +683,16 @@ if mssSH and inKZ
         pp.lx := true
 
         if shift == 1 or shift == 0
+            label_style = mssAlign == 'Center' ? label.style_label_center : mssAlign == 'Right' ? label.style_label_right : label.style_label_left
             if (mssDO == 'First' ? aMSS.size() < 1 : true)
                 aMSS.unshift(MSS.new(line.new(pp.li, pp.l, bar_index - 1, pp.l, color = ppLCS), 
-                 box.new(pp.li, pp.l, bar_index - 1, pp.l, text = 'CHoCH', text_size = size.tiny, text_halign = text.align_left, text_valign = text.align_top, text_color = mssTX ? ppLCS : color(na), bgcolor = color(na), border_color = color(na))
-                 ))
+                 label.new(bar_index - 1, pp.l, 'CHoCH', xloc.bar_index, yloc.price, color.new(color.white, 100), 
+                     style = label_style, textcolor=mssTX ? ppLCS : color(na), size=size.tiny)))
 
             if aMSS.size() > 1
                 if mssDO == 'Last'
                     mss = aMSS.pop()
-                    mss.ln.delete(), mss.bx.delete()
+                    mss.ln.delete(), mss.lb.delete()
 
         shift := -1
 
@@ -774,8 +700,59 @@ if mssSH and inKZ
 // Calculations - Fair Value Gaps
 //------------------------------------------------------------------------------
 
-if fvgSH 
-    pFVG(true, high, low, close, bar_index, fvgATR, fvgR, fvgE, fvgDO, fvgTX, fvgBC, fvgSC)
+    eq_top = ta.pivothigh(eqLen, eqLen)
+    eq_btm = ta.pivotlow(eqLen, eqLen)
+    eq_atr = ta.atr(200)
+
+    if fvgSH and inKZ
+        pFVG(inKZ, high, low, close, bar_index, fvgATR, fvgR, fvgE, fvgDO, fvgTX, fvgBC, fvgSC)
+
+    // EQH/EQL - clark_smc style
+    if eqhSH
+        if not na(eq_top)
+            if math.abs(eq_top - eq_prev_top) <= eq_atr * eqTH
+                line.new(eq_top_x, eq_prev_top, bar_index - eqLen, eq_top, color = eqhCss, style = line.style_dotted)
+                label.new(int(math.avg(bar_index - eqLen, eq_top_x)), eq_top, 'EQH', color = #00000000, textcolor = eqhCss, style = label.style_label_down, size = size.tiny)
+            eq_prev_top := eq_top
+            eq_top_x := bar_index - eqLen 
+        
+        if not na(eq_btm)
+            if math.abs(eq_btm - eq_prev_btm) <= eq_atr * eqTH
+                line.new(eq_btm_x, eq_prev_btm, bar_index - eqLen, eq_btm, color = eqlCss, style = line.style_dotted)
+                label.new(int(math.avg(bar_index - eqLen, eq_btm_x)), eq_btm, 'EQL', color = #00000000, textcolor = eqlCss, style = label.style_label_up, size = size.tiny)
+            eq_prev_btm := eq_btm
+            eq_btm_x := bar_index - eqLen
+
+    // Market Open Gaps
+    day_change = timeframe.change('1D')
+    if mogSH and day_change and not day_change[1]
+        // Bullish MOG: low > high[1]
+        if low > high[1]
+            mog_box = box.new(bar_index[1], low, bar_index, high[1], bgcolor=mogBC, border_color=mogBC, text=mogTX ? 'MOG' : na, text_size=size.tiny, text_color=color.white)
+            array.unshift(bMOG, mog_box)
+        
+        // Bearish MOG: high < low[1]
+        if high < low[1]
+            mog_box = box.new(bar_index[1], low[1], bar_index, high, bgcolor=mogSC, border_color=mogSC, text=mogTX ? 'MOG' : na, text_size=size.tiny, text_color=color.white)
+            array.unshift(aMOG, mog_box)
+
+    // Extend and mitigate MOG
+    if mogE
+        // Bullish MOG mitigation: low <= box bottom
+        if array.size(bMOG) > 0
+            for j = array.size(bMOG) - 1 to 0
+                bx = array.get(bMOG, j)
+                if low <= box.get_bottom(bx)
+                    box.set_right(bx, bar_index)
+                    array.remove(bMOG, j)
+        
+        // Bearish MOG mitigation: high >= box top
+        if array.size(aMOG) > 0
+            for j = array.size(aMOG) - 1 to 0
+                bx = array.get(aMOG, j)
+                if high >= box.get_top(bx)
+                    box.set_right(bx, bar_index)
+                    array.remove(aMOG, j)
 
 //------------------------------------------------------------------------------
 // Moving Averages
