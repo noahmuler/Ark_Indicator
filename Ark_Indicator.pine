@@ -69,7 +69,7 @@ fvgTT   = 'The script showcases fair value gaps that exceed a predetermined leng
            'The option value set to 0 means no filtering is applied.\n\n' + 
            'Remark: No filtering will be implemented for the initial 144 candles based on the fixed-length ATR, as the ATR value won\'t be available during this period.'
 fvgTX   = input.bool(true, 'Show FVGs Text', group = grp_fvg)
-fvgSkipMOG = input.bool(true, 'Skip Market Open Gaps (Sessions Only)', group = grp_fvg)
+fvgSessionsOnly = input.bool(false, 'Sessions Only', group = grp_fvg)
 fvgR    = input.bool(true, 'Remove Mitigated FVGs', group = grp_fvg)
 fvgE    = input.bool(true, 'Extend FVGs', group = grp_fvg, tooltip = extTT)
 fvgTH   = input.float(1.2, 'FVG Width Filter', minval = 0, step = .1, tooltip = fvgTT, group = grp_fvg, display = disp)
@@ -735,20 +735,20 @@ if mssSH and inKZ
 //------------------------------------------------------------------------------
 // Calculations
 //------------------------------------------------------------------------------
-    //Fair Value Gaps
+    //Fair Value Gaps - Independent logic from copy (standalone detection)
     eq_top = ta.pivothigh(eqLen, eqLen)
     eq_btm = ta.pivotlow(eqLen, eqLen)
 
-    if fvgSH and not fvgSkipMOG
+    if fvgSH and fvgSessionsOnly == false
         gapSize = low - high[2]
         if gapSize > fvgATR
             box.new(bar_index-2, low, bar_index + 20, high[2], bgcolor=fvgBC, border_color=fvgBC, text=fvgTX ? 'FVG' : na, text_size=size.tiny, text_color=color.new(#02c80a, 0))
     
     bearGapSize = low[2] - high
-    if fvgSH and not fvgSkipMOG and bearGapSize > fvgATR
+    if fvgSH and fvgSessionsOnly == false and bearGapSize > fvgATR
         box.new(bar_index-2, low[2], bar_index + 20, high, bgcolor=fvgSC, border_color=fvgSC, text=fvgTX ? 'FVG' : na, text_size=size.tiny, text_color=color.new(#5e2395, 0))
 
-    // EQH/EQL - clark_smc style
+    // EQH/EQL
     if eqhSH
         if not na(eq_top)
             if math.abs(eq_top - eq_prev_top) <= eq_atr * eqTH
@@ -766,16 +766,16 @@ if mssSH and inKZ
             eq_prev_btm := eq_btm
             eq_btm_x := bar_index - eqLen
 
-    // Market Open Gaps
+    // Market Open Gaps - Independent day_change logic from copy
     if mogSH and day_change and not day_change[1]
         // Bullish MOG: low > high[1]
         if low > high[1]
-            mog_box = box.new(bar_index[1], low, bar_index, high[1], bgcolor=mogBC, border_color=mogBC, text=mogTX ? 'GAP' : na, text_size=size.tiny, text_color=color.new(#02c80a, 0))
+            mog_box = box.new(bar_index[1], low, bar_index, high[1], bgcolor=mogBC, border_color=mogBC, text=mogTX ? 'GAP↑' : na, text_size=size.tiny, text_color=color.new(#02c80a, 0))
             array.unshift(bMOG, mog_box)
         
         // Bearish MOG: high < low[1]
         if high < low[1]
-            mog_box = box.new(bar_index[1], low[1], bar_index, high, bgcolor=mogSC, border_color=mogSC, text=mogTX ? 'GAP' : na, text_size=size.tiny, text_color=color.new(#5e2395, 0))
+            mog_box = box.new(bar_index[1], low[1], bar_index, high, bgcolor=mogSC, border_color=mogSC, text=mogTX ? 'GAP↓' : na, text_size=size.tiny, text_color=color.new(#5e2395, 0))
             array.unshift(aMOG, mog_box)
 
     // Extend and mitigate MOG
