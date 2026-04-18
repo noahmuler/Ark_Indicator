@@ -68,12 +68,12 @@ fvgSH   = input.bool(true, 'Fair Value Gaps', group = grp_fvg)
 fvgTT   = 'The script showcases fair value gaps that exceed a predetermined length calculated by multiplying the fixed-average true range (ATR) value by the option\'s value.\n\n' + 
            'The option value set to 0 means no filtering is applied.\n\n' + 
            'Remark: No filtering will be implemented for the initial 144 candles based on the fixed-length ATR, as the ATR value won\'t be available during this period.'
-fvgTH   = input.float(0.5, 'Fair Value Gap Width Filter', minval = 0, step = .1, tooltip = fvgTT, group = grp_fvg, display = disp)
+fvgTH   = input.float(1.2, 'Fair Value Gap Width Filter', minval = 0, step = .1, tooltip = fvgTT, group = grp_fvg, display = disp)
 fvgR    = input.bool(true, 'Remove Mitigated Fair Value Gaps', group = grp_fvg)
 fvgE    = input.bool(true, 'Extend Fair Value Gaps', group = grp_fvg, tooltip = extTT)
 fvgDO   = input.string('First', 'Display Fair Value Gaps', options = ['All', 'First', 'Last'], group = grp_fvg, display = disp)
-fvgBC   = input(color.new(#02c80a, 0), 'Bullish Imbalance', group = grp_fvg)
-fvgSC   = input(color.new(#5e2395, 0), 'Bearish Imbalance', group = grp_fvg)
+fvgBC   = input(color.new(#02c80a, 90), 'Bullish Imbalance', group = grp_fvg)
+fvgSC   = input(color.new(#5e2395, 80), 'Bearish Imbalance', group = grp_fvg)
 fvgTX   = input.bool(true, 'Show Fair Value Gaps Text', group = grp_fvg)
 fvgSessionsOnly = input.bool(false, 'Sessions Only', group = grp_fvg)
 
@@ -697,7 +697,6 @@ if not inKZ
     array.clear(aMSS)
 
 if mssSH and inKZ
-    pFVG(inKZ, high, low, close, bar_index, fvgATR, fvgR, fvgE, fvgDO, fvgTX, fvgBC, fvgSC)
     if close[1] > pp.h and not pp.hx
         pp.hx := true
 
@@ -734,14 +733,20 @@ if mssSH and inKZ
         shift := -1
 
 //------------------------------------------------------------------------------
-// Calculations - Fair Value Gaps
+// Calculations
 //------------------------------------------------------------------------------
-
+    //Fair Value Gaps
     eq_top = ta.pivothigh(eqLen, eqLen)
     eq_btm = ta.pivotlow(eqLen, eqLen)
 
-    if fvgSH
-        pFVG(true, high, low, close, bar_index, 0.0, fvgR, fvgE, fvgDO, fvgTX, fvgBC, fvgSC)
+    if fvgSH and fvgSessionsOnly == false
+        gapSize = low - high[2]
+        if gapSize > fvgATR
+            box.new(bar_index-2, low, bar_index + 20, high[2], bgcolor=fvgBC, border_color=fvgBC, text=fvgTX ? 'FVG' : na, text_size=size.tiny, text_color=color.new(#02c80a, 0))
+    
+    bearGapSize = low[2] - high
+    if fvgSH and fvgSessionsOnly == false and bearGapSize > fvgATR
+        box.new(bar_index-2, low[2], bar_index + 20, high, bgcolor=fvgSC, border_color=fvgSC, text=fvgTX ? 'FVG' : na, text_size=size.tiny, text_color=color.new(#5e2395, 0))
 
     // EQH/EQL - clark_smc style
     if eqhSH
@@ -793,8 +798,10 @@ if mssSH and inKZ
 
 //------------------------------------------------------------------------------
 // Liquidity Vlines + Labels (Step 8)
+avg_price = math.avg(high, low)
+
 if preAsian and not preAsian[1] and liqLabels
-    line.new(time, low - atr_liq * 2, time, high + atr_liq * 2, xloc.bar_time, extend=extend.right, color=liqColor, width=1, style=line.style_dashed)
+    line.new(time, avg_price - atr_liq, time, avg_price + atr_liq, xloc.bar_time, extend=extend.right, color=liqColor, width=1, style=line.style_dashed)
     label.new(time, math.avg(high, low), "Pre-\nAsian", xloc.bar_time, yloc.price, color=color.new(liqColor, 90), textcolor=color.white, style=label.style_label_left, size=size.small)
 
 if asianOpen and not asianOpen[1] and liqLabels

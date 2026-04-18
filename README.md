@@ -48,8 +48,8 @@ London Close: 10AM-11AM
 ✅ MOG Perfect
 ✅ OB Perfect
 ✅ MA Perfect
-🔄 FVG: Fixed (Inspiration.pine logic)
-🔄 Liq Labels: Vertical + 80% transparency
+✅ FVG: Fixed (threshold 0.3)
+✅ Liq Labels: Vertical text, no top/bottom extend, no bubble, fixed height
 📝 Supporting files updated below
 ```
 
