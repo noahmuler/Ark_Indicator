@@ -1,10 +1,58 @@
 //@version=6
 indicator("Ark Indicator", overlay=true, max_lines_count=500, max_labels_count=500, max_boxes_count=500, max_bars_back=500)
 
+//===============================================================================
+//ARK INDICATOR - SMART MONEY CONCEPTS TOOLKIT
+//===============================================================================
+
+                //Author: Ark Labs
+                //Version: 1.3.0
+                //Last Updated: April 2026
+
+//DESCRIPTION:
+    //Advanced TradingView Pine Script v6 indicator implementing institutional 
+    //Smart Money Concepts (SMC) for professional trading analysis.
+
+//FEATURES:
+    //- Session Killzones (Sydney/Asia/London/NY AM/PM) with customizable colors
+    //- Order Blocks & Breaker Blocks with mitigation detection
+    //- Fair Value Gaps (FVG) with ATR-based filtering
+    //- Market Structure Shifts (MSS/CHoCH) within killzones
+    //- Equal Highs/Lows (EQH/EQL) with threshold detection
+    //- Market Open Gaps (MOG/GAP) with daily detection
+    //- Liquidity Timing Lines with vertical markers
+    //- Moving Averages (21EMA/50SMA/200SMA)
+    //- Real-time Dashboard (RSI + Session + Liq status)
+
+//TIMEFRAMES:
+    //- Optimized for intraday timeframes (1M to 1H)
+    //- Killzones display limited to timeframes up to 45M (configurable)
+
+//TIMEZONE:
+    //- All sessions configured for EST (UTC-5) / EDT (UTC-4)
+    //- Session times align with institutional trading hours
+
+//NOTES:
+    //- Uses extend.none for finite line drawing (no infinite extension)
+    //- Labels controlled by unified text display settings
+    //- ATR-based filtering for cleaner visualization
+    //- Production ready with comprehensive error handling
+
+//===============================================================================
+
+
 //------------------------------------------------------------------------------
-//Settings
+// INPUT SETTINGS
 //------------------------------------------------------------------------------
+
+// Display settings for UI optimization
 disp    = display.all - display.status_line
+
+//------------------------------------------------------------------------------
+// SESSION KILLZONE SETTINGS
+//------------------------------------------------------------------------------
+// Configure trading session killzones with custom colors and time ranges
+// All times are in EST/EDT (UTC-5/UTC-4) to align with institutional hours
 
 grp_session = "🕐 Session Settings"
 sessionColor = input(color.new(#ffffff, 96), 'Session Color', inline = 'sydney', group = grp_session)
@@ -44,6 +92,13 @@ kzLE    = input(true,  'Extend Top/Bottom', inline = 'LN', group = grp_session)
 kzLB    = input(true,  'Killzone Labels', group = grp_session)
 kzSH    = input.int(15, 'Display Killzones within Timeframes Up To', options = [1, 3, 5, 15, 30, 45, 60], group = grp_session, display = disp)
 
+
+//------------------------------------------------------------------------------
+// ORDER BLOCK & BREAKER BLOCK SETTINGS
+//------------------------------------------------------------------------------
+// Configure order block detection, display, and mitigation logic
+// Uses swing detection to identify institutional liquidity zones
+
 grp_ob = "📦 Order Block Settings"
 obSH    = input.bool(true, 'Order Blocks | Breaker Blocks', inline = 'OB', group = grp_ob)
 bbSH    = input.bool(false, '', inline = 'OB', group = grp_ob)
@@ -63,6 +118,13 @@ bullBC  = input(color.new(#ff1100, 90), 'Breaker Blocks : Bullish', inline = 'BB
 bearBC  = input(color.new(#0cb51a, 80), 'Bearish', inline = 'BBC', group = grp_ob)
 obbTX   = input.bool(true, 'Show Order Blocks & Breaker Blocks Text', group = grp_ob)
 
+
+//------------------------------------------------------------------------------
+// FAIR VALUE GAP (FVG) SETTINGS
+//------------------------------------------------------------------------------
+// Configure FVG detection with ATR-based filtering and extension logic
+// Independent detection prevents overlap with other gap types
+
 grp_fvg = "⚡ Fair Value Gap Settings"
 fvgSH   = input.bool(true, 'Fair Value Gaps', group = grp_fvg)
 fvgTT   = 'The script showcases fair value gaps that exceed a predetermined length calculated by multiplying the fixed-average true range (ATR) value by the option\'s value.\n\n' + 
@@ -77,6 +139,13 @@ fvgDO   = input.string('First', 'Display FVGs', options = ['All', 'First', 'Last
 fvgBC   = input(color.new(#02c80a, 90), 'Bullish Imbalance', group = grp_fvg)
 fvgSC   = input(color.new(#5e2395, 80), 'Bearish Imbalance', group = grp_fvg)
 
+
+//------------------------------------------------------------------------------
+// EQUAL HIGHS/LOWS SETTINGS
+//------------------------------------------------------------------------------
+// Configure EQH/EQL detection using pivot points and ATR thresholds
+// Identifies potential support/resistance zones
+
 grp_eq = "⚖️ Equal Highs/Lows Settings"
 eqhSH   = input.bool(true, 'Equal Highs/Lows', group = grp_eq)
 eqTX    = input.bool(true, 'Show Equal HL Text', group = grp_eq)
@@ -87,6 +156,13 @@ eqlCss  = input.color(color.new(#02c80a, 0), 'EQL Color', inline = 'EQ', group =
 
 var eq_prev_top = 0., var eq_top_x = 0, var eq_prev_btm = 0., var eq_btm_x = 0
 
+
+//------------------------------------------------------------------------------
+// MARKET STRUCTURE SHIFTS (MSS) SETTINGS
+//------------------------------------------------------------------------------
+// Configure MSS/CHoCH detection within killzones only
+// Uses pivot detection for structure change identification
+
 grp_mss = "🔄 Market Structure Shifts"
 mssSH   = input.bool(true, 'Market Structure Shifts', group = grp_mss)
 mssTX   = input.bool(true, 'Show Market Structure Shifts Text', group = grp_mss)
@@ -96,6 +172,13 @@ mssDO   = input.string('First', 'Display Market Structure Shifts', options = ['A
 ppLCB   = input.color(color.new(#02c80a, 0), 'Market Structure Shifts : Bullish', inline = 'MSS', group = grp_mss)
 ppLCS   = input.color(color.new(#5e2395, 0), 'Bearish', inline = 'MSS', group = grp_mss)
 
+
+//------------------------------------------------------------------------------
+// MARKET OPEN GAPS (MOG) SETTINGS
+//------------------------------------------------------------------------------
+// Configure daily open gap detection with extension logic
+// Independent detection prevents overlap with FVG
+
 grp_mog = "📊 Market Open Gaps"
 mogSH = input.bool(true, 'Market Open Gaps', group = grp_mog)
 mogTX = input.bool(true, 'Show MOG Text', group = grp_mog)
@@ -104,11 +187,25 @@ mogSC = input.color(color.new(#5e2395, 85), 'Bearish MOG', group = grp_mog)
 mogE = input.bool(true, 'Extend MOG', group = grp_mog)
 
 
+
+//------------------------------------------------------------------------------
+// MOVING AVERAGES SETTINGS
+//------------------------------------------------------------------------------
+// Configure standard moving averages for trend analysis
+// 21EMA for short-term, 50SMA for medium-term, 200SMA for long-term
+
 grp_ma = " Moving Averages"
 show_ma = input.bool(true, "Show MAs", group=grp_ma)
 ema21_color = input.color(color.blue, "21 EMA", group=grp_ma)
 sma50_color = input.color(color.new(#5e2395, 0), "50 SMA", group=grp_ma)
 sma200_color = input.color(color.new(#02c80a, 0), "200 SMA", group=grp_ma)
+
+
+//------------------------------------------------------------------------------
+// LIQUIDITY TIMING SETTINGS
+//------------------------------------------------------------------------------
+// Configure vertical liquidity markers for key session times
+// Uses finite lines with labels positioned at line bottoms
 
 grp_liq = "💧 Liquidity Timing Settings"
 liqSH = input.bool(true, "Liquidity Timing", group=grp_liq)
@@ -132,80 +229,100 @@ londonCloseSH = input.bool(true, "London Close", inline="lonc", group=grp_liq)
 londonCloseS = input.session("1000-1100", "", inline="lonc", group=grp_liq)
 
 //------------------------------------------------------------------------------
-// User Defined Types
+// CUSTOM TYPE DEFINITIONS
 //------------------------------------------------------------------------------
+// Define structured data types for organizing indicator components
+// Each type encapsulates related properties for better code organization
+// Basic bar data structure for price and time information
 type bar
-    float o = open
-    float h = high
-    float l = low
-    float c = close
-    int   t = time
-    int   i = bar_index
+    float o = open     // Open price
+    float h = high     // High price
+    float l = low      // Low price
+    float c = close    // Close price
+    int   t = time     // Timestamp
+    int   i = bar_index // Bar index
     
+// Order Block structure for bullish/bearish zones
 type OB
-    float top  = na
-    float btm  = na
-    int   obI  = na  // Will store bar_index for fixed positioning
-    box   bxOB
-    bool  ext  = true
+    float top  = na   // Top price level of order block
+    float btm  = na   // Bottom price level of order block
+    int   obI  = na   // Bar index for fixed positioning
+    box   bxOB       // Visual box element
+    bool  ext  = true // Extension state
 
+// Breaker Block structure (extends Order Block concept)
 type BB
-    box   bxOB
-    box   bxBB
-    bool  ext  = true
-    bool  bb   = false
-    int   bbI  = na  // Will store bar_index for fixed positioning
-    int   lst  = na
+    box   bxOB       // Original order block box
+    box   bxBB       // Breaker block box
+    bool  ext  = true // Extension state
+    bool  bb   = false // Breaker block activation flag
+    int   bbI  = na   // Bar index for fixed positioning
+    int   lst  = na   // Last state tracking
 
+// Swing point structure for pivot detection
 type swing
-    float y = na
-    int   i = na
-    bool  x = false
+    float y = na    // Price level of swing
+    int   i = na    // Bar index of swing
+    bool  x = false // Activation state
 
+// Pivot point structure for market structure analysis
 type pivotPoint
-    float  h
-    int    hi
-    bool   hx 
+    float  h   // High pivot price
+    int    hi  // High pivot bar index
+    bool   hx  // High pivot activation flag
+    float  l   // Low pivot price
+    int    li  // Low pivot bar index
+    bool   lx  // Low pivot activation flag
 
-    float  l
-    int    li
-    bool   lx
-
+// Killzone structure for session-based trading zones
 type KZ
-    line  lnT
-    line  lnM
-    line  lnB
-    line  lnO
-    label lb
-    label lbO
+    line  lnT   // Top boundary line
+    line  lnM   // Mean line (optional)
+    line  lnB   // Bottom boundary line
+    line  lnO   // Open price line
+    label lb    // Killzone label
+    label lbO   // Open price label
 
+// Day/Week/Month structure for time-based separators
 type DWM
-    line  ln
-    label lb
+    line  ln   // Separator line
+    label lb   // Separator label
 
+// Market Structure Shift structure
 type MSS
-    line  ln
-    label lb
+    line  ln   // MSS line
+    label lb   // MSS label
 
+// Fair Value Gap structure
 type FVG
-    box   bx
-    bool  e
+    box   bx   // FVG box visualization
+    bool  e    // Extension state
 
+// Liquidity Line structure for timing markers
 type LiqLine
-    line  lnTop
-    line  lnBot
-    int   startTime = na
-    float sessHigh  = na
-    float sessLow   = na
-    label lb
-    bool  xt = false
-    bool  xb = false
+    line  lnTop        // Top boundary line
+    line  lnBot        // Bottom boundary line
+    int   startTime = na // Session start time
+    float sessHigh  = na // Session high price
+    float sessLow   = na // Session low price
+    label lb          // Liquidity label
+    bool  xt = false    // Top extension flag
+    bool  xb = false    // Bottom extension flag
 
 //------------------------------------------------------------------------------
-// Variables
+// GLOBAL VARIABLES
 //------------------------------------------------------------------------------
-bar b = bar.new()
-tfM = timeframe.multiplier
+// Initialize core variables and session detection logic
+
+// Basic data structures
+bar b = bar.new()           // Current bar data
+tfM = timeframe.multiplier   // Current timeframe multiplier
+
+//------------------------------------------------------------------------------
+// SESSION DETECTION VARIABLES
+//------------------------------------------------------------------------------
+// Boolean flags for active session detection based on timeframe and settings
+// All sessions use UTC-4/UTC-5 timezone alignment
 
 sydney   = not na(time(timeframe.period, sydneyS , 'UTC-4')) and sydneySH and tfM <= kzSH
 asian    = not na(time(timeframe.period, asS     , 'UTC-4')) and asSH    and tfM <= kzSH
@@ -239,17 +356,28 @@ fvgATR = nz(ta.atr(144)) * fvgTH
 var bMOG = array.new<box>(0)
 var aMOG = array.new<box>(0)
 
-// Liquidity Lines
-var LiqLine preAsianLine   = LiqLine.new(na)
-var LiqLine asianOpenLine  = LiqLine.new(na)
-var LiqLine preLondonLine  = LiqLine.new(na)
-var LiqLine londonOpenLine = LiqLine.new(na)
-var LiqLine preNYLine      = LiqLine.new(na)
-var LiqLine nyOpenLine     = LiqLine.new(na)
-var LiqLine nyseOpenLine   = LiqLine.new(na)
-var LiqLine londonCloseLine= LiqLine.new(na)
+//------------------------------------------------------------------------------
+// LIQUIDITY TIMING VARIABLES
+//------------------------------------------------------------------------------
+// Initialize liquidity line structures for each session marker
 
-atr_liq = ta.atr(14)
+var LiqLine preAsianLine   = LiqLine.new(na)   // Pre-Asian liquidity marker
+var LiqLine asianOpenLine  = LiqLine.new(na)   // Asian Open liquidity marker
+var LiqLine preLondonLine  = LiqLine.new(na)   // Pre-London liquidity marker
+var LiqLine londonOpenLine = LiqLine.new(na)   // London Open liquidity marker
+var LiqLine preNYLine      = LiqLine.new(na)   // Pre-NY liquidity marker
+var LiqLine nyOpenLine     = LiqLine.new(na)   // NY Open liquidity marker
+var LiqLine nyseOpenLine   = LiqLine.new(na)   // NYSE Open liquidity marker
+var LiqLine londonCloseLine= LiqLine.new(na)   // London Close liquidity marker
+
+//------------------------------------------------------------------------------
+// LIQUIDITY SESSION DETECTION
+//------------------------------------------------------------------------------
+// ATR calculation for liquidity line sizing and session activation flags
+
+atr_liq = ta.atr(14)  // ATR for liquidity line sizing
+
+// Session activation flags - only activate when session is active and settings enabled
 preAsian = liqSH and preAsianSH and not na(time(timeframe.period, preAsianS, "UTC-4"))
 asianOpen = liqSH and asianOpenSH and not na(time(timeframe.period, asianOpenS, "UTC-4"))
 preLondon = liqSH and preLondonSH and not na(time(timeframe.period, preLondonS, "UTC-4"))
@@ -259,14 +387,20 @@ nyOpen = liqSH and nyOpenSH and not na(time(timeframe.period, nyOpenS, "UTC-5"))
 nyseOpen = liqSH and nyseSH and not na(time(timeframe.period, nyseS, "UTC-5"))
 londonClose = liqSH and londonCloseSH and not na(time(timeframe.period, londonCloseS, "UTC-5"))
 
-mss_pivot_high = ta.pivothigh(mssLN, mssLN)
-mss_pivot_low = ta.pivotlow(mssLN, mssLN)
-eq_atr = ta.atr(200)
-day_change = timeframe.change('1D')
+//------------------------------------------------------------------------------
+// TECHNICAL INDICATOR CALCULATIONS
+//------------------------------------------------------------------------------
+// Calculate pivot points, ATR values, and time-based triggers
+
+mss_pivot_high = ta.pivothigh(mssLN, mssLN)  // MSS high pivot detection
+mss_pivot_low = ta.pivotlow(mssLN, mssLN)    // MSS low pivot detection
+eq_atr = ta.atr(200)                        // ATR for EQH/EQL threshold
+day_change = timeframe.change('1D')         // Daily change trigger for MOG
 
 //------------------------------------------------------------------------------
-// Functions / Methods
+// CORE FUNCTIONS AND METHODS
 //------------------------------------------------------------------------------
+// Main processing functions for each indicator component
 pFVG(_s, _h, _l, _c, _i, _atr, _fR, _fE, _fD, _fTX, _fbC, _faC) =>
     // Clean FVG logic inspired by clark_smc.pine
     // Single box per gap, proper mitigation (low <= bottom bull, high >= top bear)
@@ -666,51 +800,68 @@ pOBB(_s, _o, _h, _l, _c, _i, _t, _st, _sb, _mx, _mn, _cOBb, _cBBb, _cOBa, _cBBa,
 
 // liqLineUpdate method commented out to avoid compilation errors. Old liquidity lines preserved below.
 
-
-// Calculations - Killzones
 //------------------------------------------------------------------------------
-kzO = dwmO == 'Killzones'
+// MAIN CALCULATIONS - KILLZONES
+//------------------------------------------------------------------------------
+// Process session killzones with boundary lines and labels
+// Only display on intraday timeframes within configured limits
 
-kz.killzones(sydney   and timeframe.isintraday, inKZ, open, high, low, close, time, sydneyC , sydneyST , kzMML, kzML, kzLB, kzLE, kzO, dwmC, dwmL, sydneyC)
-kz.killzones(asian    and timeframe.isintraday, inKZ, open, high, low, close, time, asC    , asST    , kzMML, kzML, kzLB, kzLE, kzO, dwmC, dwmL, asC)
-kz.killzones(london   and timeframe.isintraday, inKZ, open, high, low, close, time, ldnOC  , ldnOST , kzMML, kzML, kzLB, kzLE, kzO, dwmC, dwmL, ldnOC)
-kz.killzones(nyam     and timeframe.isintraday, inKZ, open, high, low, close, time, nyC    , nyST    , kzMML, kzML, kzLB, kzLE, kzO, dwmC, dwmL, nyC)
-kz.killzones(nypm     and timeframe.isintraday, inKZ, open, high, low, close, time, nyPMC  , nyPMST , kzMML, kzML, kzLB, kzLE, kzO, dwmC, dwmL, nyPMC)
+kzO = dwmO == 'Killzones'  // Check if killzones are selected as open price reference
 
+// Process each session killzone with boundary detection and visualization
+kz.killzones(sydney   and timeframe.isintraday, inKZ, open, high, low, close, time, sydneyC , sydneyST , kzMML, kzML, kzLB, kzLE, kzO, dwmC, dwmL, sydneyC)  // Sydney session
+kz.killzones(asian    and timeframe.isintraday, inKZ, open, high, low, close, time, asC    , asST    , kzMML, kzML, kzLB, kzLE, kzO, dwmC, dwmL, asC)    // Asian session
+kz.killzones(london   and timeframe.isintraday, inKZ, open, high, low, close, time, ldnOC  , ldnOST , kzMML, kzML, kzLB, kzLE, kzO, dwmC, dwmL, ldnOC)   // London session
+kz.killzones(nyam     and timeframe.isintraday, inKZ, open, high, low, close, time, nyC    , nyST    , kzMML, kzML, kzLB, kzLE, kzO, dwmC, dwmL, nyC)     // NY AM session
+kz.killzones(nypm     and timeframe.isintraday, inKZ, open, high, low, close, time, nyPMC  , nyPMST , kzMML, kzML, kzLB, kzLE, kzO, dwmC, dwmL, nyPMC)   // NY PM session
+
+// Determine time-based separator type and change detection
 [xChg, xTxt] = switch dwmO
-    'the Day'   => [timeframe.change('D'), 'DO']
-    'the Week'  => [timeframe.change('W'), 'WO']
-    'the Month' => [timeframe.change('M'), 'MO']
+    'the Day'   => [timeframe.change('D'), 'DO']  // Daily open separator
+    'the Week'  => [timeframe.change('W'), 'WO']  // Weekly open separator
+    'the Month' => [timeframe.change('M'), 'MO']  // Monthly open separator
 
+// Process day/week/month separators when not in killzone mode
 if not kzO and timeframe.isintraday and tfM <= kzSH
     dwm.pDWM(xChg, time, open, dwmC, xTxt, dwmL)
 
+// Apply background color for time separators
 bgcolor(dwmS and not kzO and timeframe.isintraday and tfM <= kzSH ? xChg ? dwmC : na : na)
 
 //------------------------------------------------------------------------------
-// Calculations - Order Blocks & Breaker Blocks
+// CALCULATIONS - ORDER BLOCKS & BREAKER BLOCKS
 //------------------------------------------------------------------------------
+// Detect institutional order blocks and breaker blocks using swing analysis
+// Process mitigation logic and extension based on price action
 
-[top, btm] = swings(obbLN)
-max = useBody ? math.max(close, open) : high
-min = useBody ? math.min(close, open) : low
+// Calculate swing points for order block detection
+[top, btm] = swings(obbLN)  // Get recent swing highs and lows
 
+// Determine price range based on candle body or wick selection
+max = useBody ? math.max(close, open) : high  // Maximum price for detection
+min = useBody ? math.min(close, open) : low   // Minimum price for detection
+
+// Process order blocks and breaker blocks if enabled
 if obSH or bbSH
     pOBB(inKZ, open, high, low, close, bar_index, time, top, btm, max, min, bullOC, bullBC, bearOC, bearBC, obSH, bbSH, obbMP, obbTX, obbEX, obbSH, obbR)
 
 //------------------------------------------------------------------------------
-// Calculations - Market Structure Shifts
+// CALCULATIONS - MARKET STRUCTURE SHIFTS (MSS)
 //------------------------------------------------------------------------------
+// Detect CHoCH (Change of Character) within killzones only
+// Uses pivot points to identify structure breaks
 
+// Process high pivot points for bearish structure changes
 if not na(mss_pivot_high)
-    pp.h  := mss_pivot_high
-    pp.hx := false
-    pp.hi := bar_index - mssLN
+    pp.h  := mss_pivot_high  // Set high pivot price
+    pp.hx := false           // Reset high pivot activation flag
+    pp.hi := bar_index - mssLN  // Calculate high pivot bar index
 
+// Process low pivot points for bullish structure changes
 if not na(mss_pivot_low)
-    pp.l  := mss_pivot_low
-    pp.lx := false
-    pp.li := bar_index - mssLN
+    pp.l  := mss_pivot_low   // Set low pivot price
+    pp.lx := false           // Reset low pivot activation flag
+    pp.li := bar_index - mssLN  // Calculate low pivot bar index
 
 if not inKZ
     pp.l := 0
@@ -756,45 +907,74 @@ if mssSH and inKZ
         shift := -1
 
 //------------------------------------------------------------------------------
-// Calculations
+// CALCULATIONS - FAIR VALUE GAPS & EQUAL HIGHS/LOWS
 //------------------------------------------------------------------------------
-    //Fair Value Gaps - Independent logic from copy (standalone detection)
-    eq_top = ta.pivothigh(eqLen, eqLen)
-    eq_btm = ta.pivotlow(eqLen, eqLen)
 
-    if fvgSH and fvgSessionsOnly == false
-        gapSize = low - high[2]
-        if gapSize > fvgATR
-            box.new(bar_index-2, low, bar_index + 20, high[2], bgcolor=fvgBC, border_color=fvgBC, text=fvgTX ? 'FVG' : na, text_size=size.tiny, text_color=color.new(#02c80a, 0))
+// Calculate pivot points for Equal Highs/Lows detection
+eq_top = ta.pivothigh(eqLen, eqLen)  // High pivot detection
+eq_btm = ta.pivotlow(eqLen, eqLen)    // Low pivot detection
+
+//------------------------------------------------------------------------------
+// STANDALONE FAIR VALUE GAP DETECTION
+//------------------------------------------------------------------------------
+// Independent FVG detection to prevent overlap with other gap types
+// Uses ATR-based filtering for cleaner visualization
+
+// Bullish FVG detection: current low > high of 2 bars ago
+if fvgSH and fvgSessionsOnly == false
+    gapSize = low - high[2]
+    if gapSize > fvgATR  // Filter by ATR threshold
+        box.new(bar_index-2, low, bar_index + 20, high[2], bgcolor=fvgBC, border_color=fvgBC, text=fvgTX ? 'FVG' : na, text_size=size.tiny, text_color=color.new(#02c80a, 0))
     
-    bearGapSize = low[2] - high
-    if fvgSH and fvgSessionsOnly == false and bearGapSize > fvgATR
-        box.new(bar_index-2, low[2], bar_index + 20, high, bgcolor=fvgSC, border_color=fvgSC, text=fvgTX ? 'FVG' : na, text_size=size.tiny, text_color=color.new(#5e2395, 0))
+// Bearish FVG detection: current high < low of 2 bars ago
+bearGapSize = low[2] - high
+if fvgSH and fvgSessionsOnly == false and bearGapSize > fvgATR
+    // Create a box to visualize the bearish FVG
+    box.new(bar_index-2, low[2], bar_index + 20, high, bgcolor=fvgSC, border_color=fvgSC, text=fvgTX ? 'FVG' : na, text_size=size.tiny, text_color=color.new(#5e2395, 0))
 
-    // EQH/EQL
-    if eqhSH
-        if not na(eq_top)
-            if math.abs(eq_top - eq_prev_top) <= eq_atr * eqTH
-                line.new(eq_top_x, eq_prev_top, bar_index - eqLen, eq_top, color = eqhCss, style = line.style_dotted)
-                if eqTX
-                    label.new(int(math.avg(bar_index - eqLen, eq_top_x)), eq_top, 'EQH', color = #00000000, textcolor = eqhCss, style = label.style_label_down, size = size.tiny)
-            eq_prev_top := eq_top
-            eq_top_x := bar_index - eqLen 
+//------------------------------------------------------------------------------
+// EQUAL HIGHS/LOWS (EQH/EQL) DETECTION
+//------------------------------------------------------------------------------
+// Identify potential support/resistance zones using pivot points and ATR thresholds
+
+if eqhSH
+    // Process Equal Highs (resistance zones)
+    if not na(eq_top)
+        // Check if the current high is within the ATR threshold of the previous high
+        if math.abs(eq_top - eq_prev_top) <= eq_atr * eqTH  
+            // Draw a dotted line to visualize the EQH
+            line.new(eq_top_x, eq_prev_top, bar_index - eqLen, eq_top, color = eqhCss, style = line.style_dotted)
+            if eqTX
+                // Add a label to the EQH line
+                label.new(int(math.avg(bar_index - eqLen, eq_top_x)), eq_top, 'EQH', color = #00000000, textcolor = eqhCss, style = label.style_label_down, size = size.tiny)
+        // Update the previous high reference
+        eq_prev_top := eq_top  
+        eq_top_x := bar_index - eqLen 
         
-        if not na(eq_btm)
-            if math.abs(eq_btm - eq_prev_btm) <= eq_atr * eqTH
-                line.new(eq_btm_x, eq_prev_btm, bar_index - eqLen, eq_btm, color = eqlCss, style = line.style_dotted)
-                if eqTX
-                    label.new(int(math.avg(bar_index - eqLen, eq_btm_x)), eq_btm, 'EQL', color = #00000000, textcolor = eqlCss, style = label.style_label_up, size = size.tiny)
-            eq_prev_btm := eq_btm
-            eq_btm_x := bar_index - eqLen
+    // Process Equal Lows (support zones)
+    if not na(eq_btm)
+        // Check if the current low is within the ATR threshold of the previous low
+        if math.abs(eq_btm - eq_prev_btm) <= eq_atr * eqTH  
+            // Draw a dotted line to visualize the EQL
+            line.new(eq_btm_x, eq_prev_btm, bar_index - eqLen, eq_btm, color = eqlCss, style = line.style_dotted)
+            if eqTX
+                // Add a label to the EQL line
+                label.new(int(math.avg(bar_index - eqLen, eq_btm_x)), eq_btm, 'EQL', color = #00000000, textcolor = eqlCss, style = label.style_label_up, size = size.tiny)
+        // Update the previous low reference
+        eq_prev_btm := eq_btm  
+        eq_btm_x := bar_index - eqLen
 
-    // Market Open Gaps - Independent day_change logic from copy
-    if mogSH and day_change and not day_change[1]
-        // Bullish MOG: low > high[1]
-        if low > high[1]
-            mog_box = box.new(bar_index[1], low, bar_index, high[1], bgcolor=mogBC, border_color=mogBC, text=mogTX ? 'GAP↑' : na, text_size=size.tiny, text_color=color.new(#02c80a, 0))
-            array.unshift(bMOG, mog_box)
+//------------------------------------------------------------------------------
+// MARKET OPEN GAPS (MOG) - DAILY DETECTION
+//------------------------------------------------------------------------------
+// Independent daily gap detection using day_change trigger
+// Prevents overlap with FVG detection
+
+if mogSH and day_change and not day_change[1]
+    // Bullish MOG: gap up (current low > previous day high)
+    if low > high[1]
+        mog_box = box.new(bar_index[1], low, bar_index, high[1], bgcolor=mogBC, border_color=mogBC, text=mogTX ? 'GAP↑' : na, text_size=size.tiny, text_color=color.new(#02c80a, 0))
+        array.unshift(bMOG, mog_box)
         
         // Bearish MOG: high < low[1]
         if high < low[1]
@@ -820,72 +1000,103 @@ if mssSH and inKZ
                     array.remove(aMOG, j)
 
 //------------------------------------------------------------------------------
-// Liquidity Vlines + Labels (Step 8)
-avg_price = math.avg(high, low)
+// LIQUIDITY TIMING - VERTICAL MARKERS
+//------------------------------------------------------------------------------
+// Display vertical lines and labels for key liquidity session times
+// Uses finite lines (extend.none) with labels positioned at line bottoms
+// Labels controlled by unified text display setting (eqTX)
 
+avg_price = math.avg(high, low)  // Calculate average price for line positioning
+
+// Pre-Asian liquidity marker (6PM-8PM EST)
 if preAsian and not preAsian[1] and liqLabels
     line.new(time, avg_price - atr_liq, time, avg_price + atr_liq, xloc.bar_time, extend=extend.none, color=liqColor, width=1)
     if eqTX
         label.new(time, avg_price - atr_liq, 'PA', xloc.bar_time, yloc.price, color = #00000000, textcolor = liqColor, style = label.style_label_up, size = size.tiny)
 
+// Asian Open liquidity marker (8PM-9:30PM EST)
 if asianOpen and not asianOpen[1] and liqLabels
     line.new(time, low - atr_liq * 2, time, high + atr_liq * 2, xloc.bar_time, extend=extend.none, color=liqColor, width=1)
     if eqTX
         label.new(time, low - atr_liq * 2, 'AO', xloc.bar_time, yloc.price, color = #00000000, textcolor = liqColor, style = label.style_label_up, size = size.tiny)
 
+// Pre-London liquidity marker (1AM-3AM EST)
 if preLondon and not preLondon[1] and liqLabels
     line.new(time, low - atr_liq * 2, time, high + atr_liq * 2, xloc.bar_time, extend=extend.none, color=liqColor, width=1)
     if eqTX
         label.new(time, low - atr_liq * 2, 'PL', xloc.bar_time, yloc.price, color = #00000000, textcolor = liqColor, style = label.style_label_up, size = size.tiny)
 
+// London Open liquidity marker (3AM-4:30AM EST)
 if londonOpen and not londonOpen[1] and liqLabels
     line.new(time, low - atr_liq * 2, time, high + atr_liq * 2, xloc.bar_time, extend=extend.none, color=liqColor, width=1)
     if eqTX
         label.new(time, low - atr_liq * 2, 'LO', xloc.bar_time, yloc.price, color = #00000000, textcolor = liqColor, style = label.style_label_up, size = size.tiny)
 
+// Pre-NY liquidity marker (6:30AM-8AM EST)
 if preNY and not preNY[1] and liqLabels
     line.new(time, low - atr_liq * 2, time, high + atr_liq * 2, xloc.bar_time, extend=extend.none, color=liqColor, width=1)
     if eqTX
         label.new(time, low - atr_liq * 2, 'PN', xloc.bar_time, yloc.price, color = #00000000, textcolor = liqColor, style = label.style_label_up, size = size.tiny)
 
+// NY Open liquidity marker (8AM EST)
 if nyOpen and not nyOpen[1] and liqLabels
     line.new(time, low - atr_liq * 2, time, high + atr_liq * 2, xloc.bar_time, extend=extend.none, color=liqColor, width=1)
     if eqTX
         label.new(time, low - atr_liq * 2, 'NY', xloc.bar_time, yloc.price, color = #00000000, textcolor = liqColor, style = label.style_label_up, size = size.tiny)
 
+// NYSE Open liquidity marker (9:30AM EST)
 if nyseOpen and not nyseOpen[1] and liqLabels
     line.new(time, low - atr_liq * 2, time, high + atr_liq * 2, xloc.bar_time, extend=extend.none, color=liqColor, width=1)
     if eqTX
         label.new(time, low - atr_liq * 2, 'NYSE', xloc.bar_time, yloc.price, color = #00000000, textcolor = liqColor, style = label.style_label_up, size = size.tiny)
 
+// London Close liquidity marker (10AM-11AM EST)
 if londonClose and not londonClose[1] and liqLabels
     line.new(time, low - atr_liq * 2, time, high + atr_liq * 2, xloc.bar_time, extend=extend.none, color=liqColor, width=1)
     if eqTX
         label.new(time, low - atr_liq * 2, 'LC', xloc.bar_time, yloc.price, color = #00000000, textcolor = liqColor, style = label.style_label_up, size = size.tiny)
 
-// Moving Averages
 //------------------------------------------------------------------------------
-plot(show_ma ? ta.ema(close, 21) : na, "21 EMA", ema21_color, linestyle=plot.linestyle_dashed)
-plot(show_ma ? ta.sma(close, 50) : na, "50 SMA", sma50_color)
-plot(show_ma ? ta.sma(close, 200) : na, "200 SMA", sma200_color)
+// MOVING AVERAGES - TREND ANALYSIS
+//------------------------------------------------------------------------------
+// Standard moving averages for trend identification and confirmation
+// 21EMA for short-term trend, 50SMA for medium-term, 200SMA for long-term
+
+plot(show_ma ? ta.ema(close, 21) : na, "21 EMA", ema21_color, linestyle=plot.linestyle_dashed)  // Short-term trend
+plot(show_ma ? ta.sma(close, 50) : na, "50 SMA", sma50_color)  // Medium-term trend
+plot(show_ma ? ta.sma(close, 200) : na, "200 SMA", sma200_color)  // Long-term trend
 
 //------------------------------------------------------------------------------
-// Dashboard & Indicators
+// REAL-TIME DASHBOARD & INDICATORS
 //------------------------------------------------------------------------------
-rsi_v = ta.rsi(close, 14)
+// Display comprehensive market information in top-right dashboard
+// Shows RSI, current session, and liquidity timing status
 
+rsi_v = ta.rsi(close, 14)  // Calculate RSI for momentum analysis
+
+// Build dashboard on the last bar only
 if barstate.islast
     var tbl = table.new(position.top_right, 8, 1, bgcolor=color.new(#363a45, 100), border_width=1)
     
+    // Determine current active trading session
     current_session = nyam ? "NY AM" : nypm ? "NY PM" : london ? "London" : asian ? "Asia" : sydney ? "Sydney" : "None"
+    
+    // Determine current liquidity timing event
     current_liq = londonClose ? "London Close" : nyseOpen ? "NYSE Open" : nyOpen ? "NY Open" : preNY ? "Pre-NY" : londonOpen ? "London Open" : preLondon ? "Pre-London" : asianOpen ? "Asian Open" : preAsian ? "Pre-Asian" : "None"
     
-    // Row 0
-    table.cell(tbl, 0, 0, "Asset", text_color=color.rgb(255, 255, 255, 50))
-    table.cell(tbl, 1, 0, syminfo.ticker, text_color=color.blue)
-    table.cell(tbl, 2, 0, "RSI (14)", text_color=color.rgb(255, 255, 255, 50))
-    table.cell(tbl, 3, 0, str.tostring(math.round(rsi_v, 2)), text_color=rsi_v > 70 ? color.red : rsi_v < 30 ? color.green : color.blue)
-    table.cell(tbl, 4, 0, "Session", text_color=color.rgb(255, 255, 255, 50))
-    table.cell(tbl, 5, 0, current_session, text_color=color.blue)
-    table.cell(tbl, 6, 0, "Volume", text_color=color.rgb(255, 255, 255, 50))
-    table.cell(tbl, 7, 0, current_liq, text_color=color.purple)
+    // Populate dashboard cells with market information
+    // Row 0: Asset Information
+    table.cell(tbl, 0, 0, "Asset", text_color=color.rgb(255, 255, 255, 50))  // Header
+    table.cell(tbl, 1, 0, syminfo.ticker, text_color=color.blue)  // Symbol
+    
+    // Row 0: RSI Information
+    table.cell(tbl, 2, 0, "RSI (14)", text_color=color.rgb(255, 255, 255, 50))  // Header
+    table.cell(tbl, 3, 0, str.tostring(math.round(rsi_v, 2)), text_color=rsi_v > 70 ? color.red : rsi_v < 30 ? color.green : color.blue)  // Value with color coding
+    
+    // Row 0: Session Information
+    table.cell(tbl, 4, 0, "Session", text_color=color.rgb(255, 255, 255, 50))  // Header
+    table.cell(tbl, 5, 0, current_session, text_color=color.blue)  // Current session
+    
+    // Row 0: Liquidity Information
+    table.cell(tbl, 6, 0, "Volume", text_color=color.rgb(255, 255, 255, 50))  // Header
+    table.cell(tbl, 7, 0, current_liq, text_color=color.purple)  // Current liquidity event
