@@ -68,14 +68,14 @@ fvgSH   = input.bool(true, 'Fair Value Gaps', group = grp_fvg)
 fvgTT   = 'The script showcases fair value gaps that exceed a predetermined length calculated by multiplying the fixed-average true range (ATR) value by the option\'s value.\n\n' + 
            'The option value set to 0 means no filtering is applied.\n\n' + 
            'Remark: No filtering will be implemented for the initial 144 candles based on the fixed-length ATR, as the ATR value won\'t be available during this period.'
-fvgTH   = input.float(1.2, 'Fair Value Gap Width Filter', minval = 0, step = .1, tooltip = fvgTT, group = grp_fvg, display = disp)
-fvgR    = input.bool(true, 'Remove Mitigated Fair Value Gaps', group = grp_fvg)
-fvgE    = input.bool(true, 'Extend Fair Value Gaps', group = grp_fvg, tooltip = extTT)
-fvgDO   = input.string('First', 'Display Fair Value Gaps', options = ['All', 'First', 'Last'], group = grp_fvg, display = disp)
+fvgTX   = input.bool(true, 'Show FVGs Text', group = grp_fvg)
+fvgSkipMOG = input.bool(true, 'Skip Market Open Gaps (Sessions Only)', group = grp_fvg)
+fvgR    = input.bool(true, 'Remove Mitigated FVGs', group = grp_fvg)
+fvgE    = input.bool(true, 'Extend FVGs', group = grp_fvg, tooltip = extTT)
+fvgTH   = input.float(1.2, 'FVG Width Filter', minval = 0, step = .1, tooltip = fvgTT, group = grp_fvg, display = disp)
+fvgDO   = input.string('First', 'Display FVGs', options = ['All', 'First', 'Last'], group = grp_fvg, display = disp)
 fvgBC   = input(color.new(#02c80a, 90), 'Bullish Imbalance', group = grp_fvg)
 fvgSC   = input(color.new(#5e2395, 80), 'Bearish Imbalance', group = grp_fvg)
-fvgTX   = input.bool(true, 'Show Fair Value Gaps Text', group = grp_fvg)
-fvgSkipMOG = input.bool(true, 'Skip Market Open Gaps (Avoid MOG Overlap)', group = grp_fvg)
 
 grp_eq = "⚖️ Equal Highs/Lows Settings"
 eqhSH   = input.bool(true, 'Equal Highs/Lows', group = grp_eq)
@@ -739,13 +739,13 @@ if mssSH and inKZ
     eq_top = ta.pivothigh(eqLen, eqLen)
     eq_btm = ta.pivotlow(eqLen, eqLen)
 
-    if fvgSH and (not day_change or not fvgSkipMOG)
+    if fvgSH and not fvgSkipMOG
         gapSize = low - high[2]
         if gapSize > fvgATR
             box.new(bar_index-2, low, bar_index + 20, high[2], bgcolor=fvgBC, border_color=fvgBC, text=fvgTX ? 'FVG' : na, text_size=size.tiny, text_color=color.new(#02c80a, 0))
     
     bearGapSize = low[2] - high
-    if fvgSH and (not day_change or not fvgSkipMOG) and bearGapSize > fvgATR
+    if fvgSH and not fvgSkipMOG and bearGapSize > fvgATR
         box.new(bar_index-2, low[2], bar_index + 20, high, bgcolor=fvgSC, border_color=fvgSC, text=fvgTX ? 'FVG' : na, text_size=size.tiny, text_color=color.new(#5e2395, 0))
 
     // EQH/EQL - clark_smc style
