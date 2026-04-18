@@ -191,6 +191,16 @@ type FVG
     box   bx
     bool  e
 
+type LiqLine
+    line  lnTop
+    line  lnBot
+    int   startTime = na
+    float sessHigh  = na
+    float sessLow   = na
+    label lb
+    bool  xt = false
+    bool  xb = false
+
 //------------------------------------------------------------------------------
 // Variables
 //------------------------------------------------------------------------------
@@ -228,6 +238,16 @@ fvgATR = nz(ta.atr(144)) * fvgTH
 
 var bMOG = array.new<box>(0)
 var aMOG = array.new<box>(0)
+
+// Liquidity Lines
+var LiqLine preAsianLine   = LiqLine.new(na)
+var LiqLine asianOpenLine  = LiqLine.new(na)
+var LiqLine preLondonLine  = LiqLine.new(na)
+var LiqLine londonOpenLine = LiqLine.new(na)
+var LiqLine preNYLine      = LiqLine.new(na)
+var LiqLine nyOpenLine     = LiqLine.new(na)
+var LiqLine nyseOpenLine   = LiqLine.new(na)
+var LiqLine londonCloseLine= LiqLine.new(na)
 
 atr_liq = ta.atr(14)
 preAsian = liqSH and preAsianSH and not na(time(timeframe.period, preAsianS, "UTC-4"))
@@ -644,6 +664,9 @@ pOBB(_s, _o, _h, _l, _c, _i, _t, _st, _sb, _mx, _mn, _cOBb, _cBBb, _cOBa, _cBBa,
                 aBB.remove(i)
         na
 
+// liqLineUpdate method commented out to avoid compilation errors. Old liquidity lines preserved below.
+
+
 // Calculations - Killzones
 //------------------------------------------------------------------------------
 kzO = dwmO == 'Killzones'
@@ -834,7 +857,7 @@ if londonClose and not londonClose[1] and liqLabels
 
 // Moving Averages
 //------------------------------------------------------------------------------
-plot(show_ma ? ta.ema(close, 21) : na, "21 EMA", ema21_color, 2)
+plot(show_ma ? ta.ema(close, 21) : na, "21 EMA", ema21_color, linestyle=plot.linestyle_dashed)
 plot(show_ma ? ta.sma(close, 50) : na, "50 SMA", sma50_color)
 plot(show_ma ? ta.sma(close, 200) : na, "200 SMA", sma200_color)
 
