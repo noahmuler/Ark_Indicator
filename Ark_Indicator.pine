@@ -113,7 +113,7 @@ sma200_color = input.color(color.new(#02c80a, 0), "200 SMA", group=grp_ma)
 grp_liq = "💧 Liquidity Timing Settings"
 liqSH = input.bool(true, "Liquidity Timing", group=grp_liq)
 liqLabels = input.bool(true, "Show Liq Labels", group=grp_liq)
-liqColor = input(color.new(color.purple, 85), "Liq Color", group=grp_liq)
+liqColor = input(color.new(color.purple, 80), "Liq Color", group=grp_liq)
 preAsianSH = input.bool(true, "Pre-Asian", inline="prea", group=grp_liq)
 preAsianS = input.session("1800-2000", "", inline="prea", group=grp_liq)
 asianOpenSH = input.bool(true, "Asian Open", inline="asop", group=grp_liq)
@@ -741,7 +741,7 @@ if mssSH and inKZ
     eq_btm = ta.pivotlow(eqLen, eqLen)
 
     if fvgSH
-        pFVG(true, high, low, close, bar_index, fvgATR, fvgR, fvgE, fvgDO, fvgTX, fvgBC, fvgSC)
+        pFVG(true, high, low, close, bar_index, 0.0, fvgR, fvgE, fvgDO, fvgTX, fvgBC, fvgSC)
 
     // EQH/EQL - clark_smc style
     if eqhSH
