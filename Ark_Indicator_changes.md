@@ -21,9 +21,26 @@ Liquidity Timing:
 - [x] MSS/EQH/EQL/MOG/OB/MA/Dashboard/Killzones Perfect
 ```
 
-**PRODUCTION READY: Reload chart to test FVG/Liq fixes.**
+## v1.1.2 (FVG-MOG Overlap Fixed) - 2024
+**New**: Added `fvgSkipMOG` toggle (default true). FVG detection now skips market open gaps (`day_change and not day_change[1]`) where MOG triggers, preventing overlap. FVG appears everywhere else.
 
-**All features complete and tested.**
+### ✅ All Features:
+```
+✅ Killzones
+✅ Order Blocks / Breaker Blocks  
+✅ FVG (no MOG overlap, mitigation/extension ready)
+✅ MSS/CHoCH
+✅ EQH/EQL
+✅ MOG (day_change gaps)
+✅ Liquidity Timing
+✅ MAs (21/50/200)
+✅ Dashboard (RSI/Session/Liq)
+
+**FULLY PRODUCTION READY ✅**
+
+New input: fvgSkipMOG=true prevents FVG from duplicating MOG gaps.
+Reload chart to test.**
+
 
 
 

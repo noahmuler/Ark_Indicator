@@ -75,7 +75,7 @@ fvgDO   = input.string('First', 'Display Fair Value Gaps', options = ['All', 'Fi
 fvgBC   = input(color.new(#02c80a, 90), 'Bullish Imbalance', group = grp_fvg)
 fvgSC   = input(color.new(#5e2395, 80), 'Bearish Imbalance', group = grp_fvg)
 fvgTX   = input.bool(true, 'Show Fair Value Gaps Text', group = grp_fvg)
-fvgSessionsOnly = input.bool(false, 'Sessions Only', group = grp_fvg)
+fvgSkipMOG = input.bool(true, 'Skip Market Open Gaps (Avoid MOG Overlap)', group = grp_fvg)
 
 grp_eq = "⚖️ Equal Highs/Lows Settings"
 eqhSH   = input.bool(true, 'Equal Highs/Lows', group = grp_eq)
@@ -739,13 +739,13 @@ if mssSH and inKZ
     eq_top = ta.pivothigh(eqLen, eqLen)
     eq_btm = ta.pivotlow(eqLen, eqLen)
 
-    if fvgSH and fvgSessionsOnly == false
+    if fvgSH and (not day_change or not fvgSkipMOG)
         gapSize = low - high[2]
         if gapSize > fvgATR
             box.new(bar_index-2, low, bar_index + 20, high[2], bgcolor=fvgBC, border_color=fvgBC, text=fvgTX ? 'FVG' : na, text_size=size.tiny, text_color=color.new(#02c80a, 0))
     
     bearGapSize = low[2] - high
-    if fvgSH and fvgSessionsOnly == false and bearGapSize > fvgATR
+    if fvgSH and (not day_change or not fvgSkipMOG) and bearGapSize > fvgATR
         box.new(bar_index-2, low[2], bar_index + 20, high, bgcolor=fvgSC, border_color=fvgSC, text=fvgTX ? 'FVG' : na, text_size=size.tiny, text_color=color.new(#5e2395, 0))
 
     // EQH/EQL - clark_smc style

@@ -23,7 +23,7 @@ Advanced TradingView Pine Script v6 indicator implementing institutional Smart M
 ## Key Settings
 ```
 Sessions: UTC-4 (NY Time)
-FVG Filter: 0.5 ATR (adjust for volatility)
+FVG Filter: 1.2 ATR | Skip MOG Gaps: true (prevents overlap)
 OB Length: 5 bars swing detection
 MSS Length: 7 bars pivot detection
 Liq Labels: Toggle for timing lines
@@ -48,9 +48,9 @@ London Close: 10AM-11AM
 ✅ MOG Perfect
 ✅ OB Perfect
 ✅ MA Perfect
-✅ FVG: Fixed (threshold 0.3)
-✅ Liq Labels: Vertical text, no top/bottom extend, no bubble, fixed height
-📝 Supporting files updated below
+✅ FVG: No MOG overlap (fvgSkipMOG=true)
+✅ Liq Labels: Vertical timing lines
+📝 All files updated
 ```
 
 **Copy Ark_Indicator_copy.pine to main script when ready.**
