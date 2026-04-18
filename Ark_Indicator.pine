@@ -68,26 +68,28 @@ fvgSH   = input.bool(true, 'Fair Value Gaps', group = grp_fvg)
 fvgTT   = 'The script showcases fair value gaps that exceed a predetermined length calculated by multiplying the fixed-average true range (ATR) value by the option\'s value.\n\n' + 
            'The option value set to 0 means no filtering is applied.\n\n' + 
            'Remark: No filtering will be implemented for the initial 144 candles based on the fixed-length ATR, as the ATR value won\'t be available during this period.'
-fvgTH   = input.float(1.2, 'Fair Value Gap Width Filter', minval = 0, step = .1, tooltip = fvgTT, group = grp_fvg, display = disp)
+fvgTH   = input.float(0.5, 'Fair Value Gap Width Filter', minval = 0, step = .1, tooltip = fvgTT, group = grp_fvg, display = disp)
 fvgR    = input.bool(true, 'Remove Mitigated Fair Value Gaps', group = grp_fvg)
 fvgE    = input.bool(true, 'Extend Fair Value Gaps', group = grp_fvg, tooltip = extTT)
 fvgDO   = input.string('First', 'Display Fair Value Gaps', options = ['All', 'First', 'Last'], group = grp_fvg, display = disp)
 fvgBC   = input(color.new(#02c80a, 0), 'Bullish Imbalance', group = grp_fvg)
 fvgSC   = input(color.new(#5e2395, 0), 'Bearish Imbalance', group = grp_fvg)
 fvgTX   = input.bool(true, 'Show Fair Value Gaps Text', group = grp_fvg)
+fvgSessionsOnly = input.bool(false, 'Sessions Only', group = grp_fvg)
 
 grp_eq = "⚖️ Equal Highs/Lows Settings"
 eqhSH   = input.bool(true, 'Equal Highs/Lows', group = grp_eq)
+eqTX    = input.bool(true, 'Show Equal HL Text', group = grp_eq)
 eqLen   = input.int(3, 'Bars Confirmation', minval = 1, group = grp_eq)
-eqTH    = input.float(0.1, 'Threshold (ATR mult)', minval = 0, maxval = 0.5, step = 0.05, group = grp_eq, tooltip = 'Lower = stricter (fewer EQs)')
-eqhCss  = input.color(color.new(#f23645, 0), 'EQH Color', inline = 'EQ', group = grp_eq)
-eqlCss  = input.color(color.new(#089981, 0), 'EQL Color', inline = 'EQ', group = grp_eq)
+eqTH    = input.float(0.05, 'Threshold (ATR mult)', minval = 0, maxval = 0.5, step = 0.05, group = grp_eq, tooltip = 'Lower = stricter (fewer EQs)')
+eqhCss  = input.color(color.new(#5e2395, 0), 'EQH Color', inline = 'EQ', group = grp_eq)
+eqlCss  = input.color(color.new(#02c80a, 0), 'EQL Color', inline = 'EQ', group = grp_eq)
 
 var eq_prev_top = 0., var eq_top_x = 0, var eq_prev_btm = 0., var eq_btm_x = 0
 
 grp_mss = "🔄 Market Structure Shifts"
-mssTX   = input.bool(true, 'Show Market Structure Shifts Text', group = grp_mss)
 mssSH   = input.bool(true, 'Market Structure Shifts', group = grp_mss)
+mssTX   = input.bool(true, 'Show Market Structure Shifts Text', group = grp_mss)
 mssAlign = input.string('top_center', 'MSS Label Position', options=['top_left', 'top_center', 'top_right'], group = grp_mss)
 mssLN   = input.int(7, "Detection Length", minval = 1, group = grp_mss, display = disp)
 mssDO   = input.string('First', 'Display Market Structure Shifts', options = ['All', 'First', 'Last'], group = grp_mss, display = disp)
@@ -96,16 +98,38 @@ ppLCS   = input.color(color.new(#5e2395, 0), 'Bearish', inline = 'MSS', group = 
 
 grp_mog = "📊 Market Open Gaps"
 mogSH = input.bool(true, 'Market Open Gaps', group = grp_mog)
-mogBC = input.color(color.new(#00ff68, 70), 'Bullish MOG', group = grp_mog)
-mogSC = input.color(color.new(#ff0008, 70), 'Bearish MOG', group = grp_mog)
-mogE = input.bool(true, 'Extend MOG', group = grp_mog)
 mogTX = input.bool(true, 'Show MOG Text', group = grp_mog)
+mogBC = input.color(color.new(#02c80a, 90), 'Bullish MOG', group = grp_mog)
+mogSC = input.color(color.new(#5e2395, 90), 'Bearish MOG', group = grp_mog)
+mogE = input.bool(true, 'Extend MOG', group = grp_mog)
+
 
 grp_ma = " Moving Averages"
 show_ma = input.bool(true, "Show MAs", group=grp_ma)
 ema21_color = input.color(color.blue, "21 EMA", group=grp_ma)
 sma50_color = input.color(color.new(#5e2395, 0), "50 SMA", group=grp_ma)
 sma200_color = input.color(color.new(#02c80a, 0), "200 SMA", group=grp_ma)
+
+grp_liq = "💧 Liquidity Timing Settings"
+liqSH = input.bool(true, "Liquidity Timing", group=grp_liq)
+liqLabels = input.bool(true, "Show Liq Labels", group=grp_liq)
+liqColor = input(color.new(color.purple, 85), "Liq Color", group=grp_liq)
+preAsianSH = input.bool(true, "Pre-Asian", inline="prea", group=grp_liq)
+preAsianS = input.session("1800-2000", "", inline="prea", group=grp_liq)
+asianOpenSH = input.bool(true, "Asian Open", inline="asop", group=grp_liq)
+asianOpenS = input.session("2000-2130", "", inline="asop", group=grp_liq)
+preLondonSH = input.bool(true, "Pre-London", inline="prel", group=grp_liq)
+preLondonS = input.session("0100-0300", "", inline="prel", group=grp_liq)
+londonOpenSH = input.bool(true, "London Open", inline="lonop", group=grp_liq)
+londonOpenS = input.session("0300-0430", "", inline="lonop", group=grp_liq)
+preNYSH = input.bool(true, "Pre-NY", inline="pren", group=grp_liq)
+preNYS = input.session("0630-0800", "", inline="pren", group=grp_liq)
+nyOpenSH = input.bool(true, "NY Open", inline="nyop", group=grp_liq)
+nyOpenS = input.session("0800-0801", "", inline="nyop", group=grp_liq)
+nyseSH = input.bool(true, "NYSE Open", inline="nyse", group=grp_liq)
+nyseS = input.session("0930-0931", "", inline="nyse", group=grp_liq)
+londonCloseSH = input.bool(true, "London Close", inline="lonc", group=grp_liq)
+londonCloseS = input.session("1000-1100", "", inline="lonc", group=grp_liq)
 
 //------------------------------------------------------------------------------
 // User Defined Types
@@ -204,6 +228,21 @@ fvgATR = nz(ta.atr(144)) * fvgTH
 
 var bMOG = array.new<box>(0)
 var aMOG = array.new<box>(0)
+
+atr_liq = ta.atr(14)
+preAsian = liqSH and preAsianSH and not na(time(timeframe.period, preAsianS, "UTC-4"))
+asianOpen = liqSH and asianOpenSH and not na(time(timeframe.period, asianOpenS, "UTC-4"))
+preLondon = liqSH and preLondonSH and not na(time(timeframe.period, preLondonS, "UTC-4"))
+londonOpen = liqSH and londonOpenSH and not na(time(timeframe.period, londonOpenS, "UTC-4"))
+preNY = liqSH and preNYSH and not na(time(timeframe.period, preNYS, "UTC-5"))
+nyOpen = liqSH and nyOpenSH and not na(time(timeframe.period, nyOpenS, "UTC-5"))
+nyseOpen = liqSH and nyseSH and not na(time(timeframe.period, nyseS, "UTC-5"))
+londonClose = liqSH and londonCloseSH and not na(time(timeframe.period, londonCloseS, "UTC-5"))
+
+mss_pivot_high = ta.pivothigh(mssLN, mssLN)
+mss_pivot_low = ta.pivotlow(mssLN, mssLN)
+eq_atr = ta.atr(200)
+day_change = timeframe.change('1D')
 
 //------------------------------------------------------------------------------
 // Functions / Methods
@@ -640,16 +679,13 @@ if obSH or bbSH
 // Calculations - Market Structure Shifts
 //------------------------------------------------------------------------------
 
-pp_h = ta.pivothigh(mssLN, mssLN)
-pp_l = ta.pivotlow (mssLN, mssLN)
-
-if not na(pp_h)
-    pp.h  := pp_h
+if not na(mss_pivot_high)
+    pp.h  := mss_pivot_high
     pp.hx := false
     pp.hi := bar_index - mssLN
 
-if not na(pp_l)
-    pp.l  := pp_l
+if not na(mss_pivot_low)
+    pp.l  := mss_pivot_low
     pp.lx := false
     pp.li := bar_index - mssLN
 
@@ -661,15 +697,16 @@ if not inKZ
     array.clear(aMSS)
 
 if mssSH and inKZ
+    pFVG(inKZ, high, low, close, bar_index, fvgATR, fvgR, fvgE, fvgDO, fvgTX, fvgBC, fvgSC)
     if close[1] > pp.h and not pp.hx
         pp.hx := true
 
         if shift == -1 or shift == 0
-            label_style = mssAlign == 'Center' ? label.style_label_center : mssAlign == 'Right' ? label.style_label_right : label.style_label_left
+            int bull_x = int(math.avg(pp.hi, bar_index - mssLN))
             if (mssDO == 'First' ? bMSS.size() < 1 : true)
                 bMSS.unshift(MSS.new(line.new(pp.hi, pp.h, bar_index - 1, pp.h, color = ppLCB), 
-                 label.new(bar_index - 1, pp.h, 'CHoCH', xloc.bar_index, yloc.price, color.new(color.white, 100), 
-                     style = label_style, 
+                 label.new(bull_x, pp.h, 'CHoCH', xloc.bar_index, yloc.price, color.new(color.white, 100), 
+                     style = label.style_label_down, 
                      textcolor=mssTX ? ppLCB : color(na), size=size.tiny)))
 
             if bMSS.size() > 1
@@ -683,11 +720,11 @@ if mssSH and inKZ
         pp.lx := true
 
         if shift == 1 or shift == 0
-            label_style = mssAlign == 'Center' ? label.style_label_center : mssAlign == 'Right' ? label.style_label_right : label.style_label_left
+            int bear_x = int(math.avg(pp.li, bar_index - mssLN))
             if (mssDO == 'First' ? aMSS.size() < 1 : true)
                 aMSS.unshift(MSS.new(line.new(pp.li, pp.l, bar_index - 1, pp.l, color = ppLCS), 
-                 label.new(bar_index - 1, pp.l, 'CHoCH', xloc.bar_index, yloc.price, color.new(color.white, 100), 
-                     style = label_style, textcolor=mssTX ? ppLCS : color(na), size=size.tiny)))
+                 label.new(bear_x, pp.l, 'CHoCH', xloc.bar_index, yloc.price, color.new(color.white, 100), 
+                     style = label.style_label_up, textcolor=mssTX ? ppLCS : color(na), size=size.tiny)))
 
             if aMSS.size() > 1
                 if mssDO == 'Last'
@@ -702,38 +739,38 @@ if mssSH and inKZ
 
     eq_top = ta.pivothigh(eqLen, eqLen)
     eq_btm = ta.pivotlow(eqLen, eqLen)
-    eq_atr = ta.atr(200)
 
-    if fvgSH and inKZ
-        pFVG(inKZ, high, low, close, bar_index, fvgATR, fvgR, fvgE, fvgDO, fvgTX, fvgBC, fvgSC)
+    if fvgSH
+        pFVG(true, high, low, close, bar_index, fvgATR, fvgR, fvgE, fvgDO, fvgTX, fvgBC, fvgSC)
 
     // EQH/EQL - clark_smc style
     if eqhSH
         if not na(eq_top)
             if math.abs(eq_top - eq_prev_top) <= eq_atr * eqTH
                 line.new(eq_top_x, eq_prev_top, bar_index - eqLen, eq_top, color = eqhCss, style = line.style_dotted)
-                label.new(int(math.avg(bar_index - eqLen, eq_top_x)), eq_top, 'EQH', color = #00000000, textcolor = eqhCss, style = label.style_label_down, size = size.tiny)
+                if eqTX
+                    label.new(int(math.avg(bar_index - eqLen, eq_top_x)), eq_top, 'EQH', color = #00000000, textcolor = eqhCss, style = label.style_label_down, size = size.tiny)
             eq_prev_top := eq_top
             eq_top_x := bar_index - eqLen 
         
         if not na(eq_btm)
             if math.abs(eq_btm - eq_prev_btm) <= eq_atr * eqTH
                 line.new(eq_btm_x, eq_prev_btm, bar_index - eqLen, eq_btm, color = eqlCss, style = line.style_dotted)
-                label.new(int(math.avg(bar_index - eqLen, eq_btm_x)), eq_btm, 'EQL', color = #00000000, textcolor = eqlCss, style = label.style_label_up, size = size.tiny)
+                if eqTX
+                    label.new(int(math.avg(bar_index - eqLen, eq_btm_x)), eq_btm, 'EQL', color = #00000000, textcolor = eqlCss, style = label.style_label_up, size = size.tiny)
             eq_prev_btm := eq_btm
             eq_btm_x := bar_index - eqLen
 
     // Market Open Gaps
-    day_change = timeframe.change('1D')
     if mogSH and day_change and not day_change[1]
         // Bullish MOG: low > high[1]
         if low > high[1]
-            mog_box = box.new(bar_index[1], low, bar_index, high[1], bgcolor=mogBC, border_color=mogBC, text=mogTX ? 'MOG' : na, text_size=size.tiny, text_color=color.white)
+            mog_box = box.new(bar_index[1], low, bar_index, high[1], bgcolor=mogBC, border_color=mogBC, text=mogTX ? 'GAP' : na, text_size=size.tiny, text_color=color.new(#02c80a, 0))
             array.unshift(bMOG, mog_box)
         
         // Bearish MOG: high < low[1]
         if high < low[1]
-            mog_box = box.new(bar_index[1], low[1], bar_index, high, bgcolor=mogSC, border_color=mogSC, text=mogTX ? 'MOG' : na, text_size=size.tiny, text_color=color.white)
+            mog_box = box.new(bar_index[1], low[1], bar_index, high, bgcolor=mogSC, border_color=mogSC, text=mogTX ? 'GAP' : na, text_size=size.tiny, text_color=color.new(#5e2395, 0))
             array.unshift(aMOG, mog_box)
 
     // Extend and mitigate MOG
@@ -755,15 +792,44 @@ if mssSH and inKZ
                     array.remove(aMOG, j)
 
 //------------------------------------------------------------------------------
+// Liquidity Vlines + Labels (Step 8)
+if preAsian and not preAsian[1] and liqLabels
+    line.new(time, low - atr_liq * 2, time, high + atr_liq * 2, xloc.bar_time, extend=extend.right, color=liqColor, width=1, style=line.style_dashed)
+    label.new(time, math.avg(high, low), "Pre-\nAsian", xloc.bar_time, yloc.price, color=color.new(liqColor, 90), textcolor=color.white, style=label.style_label_left, size=size.small)
+
+if asianOpen and not asianOpen[1] and liqLabels
+    line.new(time, low - atr_liq * 2, time, high + atr_liq * 2, xloc.bar_time, extend=extend.right, color=liqColor, width=1, style=line.style_dashed)
+    label.new(time, math.avg(high, low), "Asian\nOpen", xloc.bar_time, yloc.price, color=color.new(liqColor, 90), textcolor=color.white, style=label.style_label_left, size=size.small)
+
+if preLondon and not preLondon[1] and liqLabels
+    line.new(time, low - atr_liq * 2, time, high + atr_liq * 2, xloc.bar_time, extend=extend.right, color=liqColor, width=1, style=line.style_dashed)
+    label.new(time, math.avg(high, low), "Pre-\nLondon", xloc.bar_time, yloc.price, color=color.new(liqColor, 90), textcolor=color.white, style=label.style_label_left, size=size.small)
+
+if londonOpen and not londonOpen[1] and liqLabels
+    line.new(time, low - atr_liq * 2, time, high + atr_liq * 2, xloc.bar_time, extend=extend.right, color=liqColor, width=1, style=line.style_dashed)
+    label.new(time, math.avg(high, low), "London\nOpen", xloc.bar_time, yloc.price, color=color.new(liqColor, 90), textcolor=color.white, style=label.style_label_left, size=size.small)
+
+if preNY and not preNY[1] and liqLabels
+    line.new(time, low - atr_liq * 2, time, high + atr_liq * 2, xloc.bar_time, extend=extend.right, color=liqColor, width=1, style=line.style_dashed)
+    label.new(time, math.avg(high, low), "Pre-NY", xloc.bar_time, yloc.price, color=color.new(liqColor, 90), textcolor=color.white, style=label.style_label_left, size=size.small)
+
+if nyOpen and not nyOpen[1] and liqLabels
+    line.new(time, low - atr_liq * 2, time, high + atr_liq * 2, xloc.bar_time, extend=extend.right, color=liqColor, width=1, style=line.style_dashed)
+    label.new(time, math.avg(high, low), "NY\nOpen", xloc.bar_time, yloc.price, color=color.new(liqColor, 90), textcolor=color.white, style=label.style_label_left, size=size.small)
+
+if nyseOpen and not nyseOpen[1] and liqLabels
+    line.new(time, low - atr_liq * 2, time, high + atr_liq * 2, xloc.bar_time, extend=extend.right, color=liqColor, width=1, style=line.style_dashed)
+    label.new(time, math.avg(high, low), "NYSE\nOpen", xloc.bar_time, yloc.price, color=color.new(liqColor, 90), textcolor=color.white, style=label.style_label_left, size=size.small)
+
+if londonClose and not londonClose[1] and liqLabels
+    line.new(time, low - atr_liq * 2, time, high + atr_liq * 2, xloc.bar_time, extend=extend.right, color=liqColor, width=1, style=line.style_dashed)
+    label.new(time, math.avg(high, low), "London\nClose", xloc.bar_time, yloc.price, color=color.new(liqColor, 90), textcolor=color.white, style=label.style_label_left, size=size.small)
+
 // Moving Averages
 //------------------------------------------------------------------------------
-ema21 = ta.ema(close, 21)
-sma50 = ta.sma(close, 50)
-sma200 = ta.sma(close, 200)
-
-plot(show_ma ? ema21 : na, "21 EMA", color=ema21_color)
-plot(show_ma ? sma50 : na, "50 SMA", color=sma50_color)
-plot(show_ma ? sma200 : na, "200 SMA", color=sma200_color)
+plot(show_ma ? ta.ema(close, 21) : na, "21 EMA", ema21_color, 2)
+plot(show_ma ? ta.sma(close, 50) : na, "50 SMA", sma50_color)
+plot(show_ma ? ta.sma(close, 200) : na, "200 SMA", sma200_color)
 
 //------------------------------------------------------------------------------
 // Dashboard & Indicators
@@ -771,14 +837,17 @@ plot(show_ma ? sma200 : na, "200 SMA", color=sma200_color)
 rsi_v = ta.rsi(close, 14)
 
 if barstate.islast
-    var tbl = table.new(position.top_right, 6, 1, bgcolor=color.new(#363a45, 100), border_width=1)
+    var tbl = table.new(position.top_right, 8, 1, bgcolor=color.new(#363a45, 100), border_width=1)
     
+    current_session = nyam ? "NY AM" : nypm ? "NY PM" : london ? "London" : asian ? "Asia" : sydney ? "Sydney" : "None"
+    current_liq = londonClose ? "London Close" : nyseOpen ? "NYSE Open" : nyOpen ? "NY Open" : preNY ? "Pre-NY" : londonOpen ? "London Open" : preLondon ? "Pre-London" : asianOpen ? "Asian Open" : preAsian ? "Pre-Asian" : "None"
+    
+    // Row 0
     table.cell(tbl, 0, 0, "Asset", text_color=color.rgb(255, 255, 255, 50))
     table.cell(tbl, 1, 0, syminfo.ticker, text_color=color.blue)
-    
     table.cell(tbl, 2, 0, "RSI (14)", text_color=color.rgb(255, 255, 255, 50))
     table.cell(tbl, 3, 0, str.tostring(math.round(rsi_v, 2)), text_color=rsi_v > 70 ? color.red : rsi_v < 30 ? color.green : color.blue)
-    
-    current_session = nyam ? "NY AM" : nypm ? "NY PM" : london ? "London" : asian ? "Asia" : sydney ? "Sydney" : "KitKat"
     table.cell(tbl, 4, 0, "Session", text_color=color.rgb(255, 255, 255, 50))
     table.cell(tbl, 5, 0, current_session, text_color=color.blue)
+    table.cell(tbl, 6, 0, "Volume", text_color=color.rgb(255, 255, 255, 50))
+    table.cell(tbl, 7, 0, current_liq, text_color=color.purple)
