@@ -113,7 +113,7 @@ sma200_color = input.color(color.new(#02c80a, 0), "200 SMA", group=grp_ma)
 grp_liq = "💧 Liquidity Timing Settings"
 liqSH = input.bool(true, "Liquidity Timing", group=grp_liq)
 liqLabels = input.bool(true, "Show Liq Labels", group=grp_liq)
-liqColor = input(color.new(color.purple, 80), "Liq Color", group=grp_liq)
+liqColor = input(color.new(#e65704, 9), "Liq Color", group=grp_liq)
 preAsianSH = input.bool(true, "Pre-Asian", inline="prea", group=grp_liq)
 preAsianS = input.session("1800-2000", "", inline="prea", group=grp_liq)
 asianOpenSH = input.bool(true, "Asian Open", inline="asop", group=grp_liq)
@@ -824,36 +824,44 @@ if mssSH and inKZ
 avg_price = math.avg(high, low)
 
 if preAsian and not preAsian[1] and liqLabels
-    line.new(time, avg_price - atr_liq, time, avg_price + atr_liq, xloc.bar_time, extend=extend.right, color=liqColor, width=1, style=line.style_dashed)
-    label.new(time, math.avg(high, low), "Pre-\nAsian", xloc.bar_time, yloc.price, color=color.new(liqColor, 90), textcolor=color.white, style=label.style_label_left, size=size.small)
+    line.new(time, avg_price - atr_liq, time, avg_price + atr_liq, xloc.bar_time, extend=extend.none, color=liqColor, width=1, style=line.style_dashed)
+    if eqTX
+        label.new(time, math.avg(high, low), 'PA', xloc.bar_time, color = #00000000, textcolor = liqColor, style = label.style_label_left, size = size.tiny)
 
 if asianOpen and not asianOpen[1] and liqLabels
-    line.new(time, low - atr_liq * 2, time, high + atr_liq * 2, xloc.bar_time, extend=extend.right, color=liqColor, width=1, style=line.style_dashed)
-    label.new(time, math.avg(high, low), "Asian\nOpen", xloc.bar_time, yloc.price, color=color.new(liqColor, 90), textcolor=color.white, style=label.style_label_left, size=size.small)
+    line.new(time, low - atr_liq * 2, time, high + atr_liq * 2, xloc.bar_time, extend=extend.none, color=liqColor, width=1, style=line.style_dashed)
+    if eqTX
+        label.new(time, math.avg(high, low), 'AO', xloc.bar_time, color = #00000000, textcolor = liqColor, style = label.style_label_left, size = size.tiny)
 
 if preLondon and not preLondon[1] and liqLabels
-    line.new(time, low - atr_liq * 2, time, high + atr_liq * 2, xloc.bar_time, extend=extend.right, color=liqColor, width=1, style=line.style_dashed)
-    label.new(time, math.avg(high, low), "Pre-\nLondon", xloc.bar_time, yloc.price, color=color.new(liqColor, 90), textcolor=color.white, style=label.style_label_left, size=size.small)
+    line.new(time, low - atr_liq * 2, time, high + atr_liq * 2, xloc.bar_time, extend=extend.none, color=liqColor, width=1, style=line.style_dashed)
+    if eqTX
+        label.new(time, math.avg(high, low), 'PL', xloc.bar_time, color = #00000000, textcolor = liqColor, style = label.style_label_left, size = size.tiny)
 
 if londonOpen and not londonOpen[1] and liqLabels
-    line.new(time, low - atr_liq * 2, time, high + atr_liq * 2, xloc.bar_time, extend=extend.right, color=liqColor, width=1, style=line.style_dashed)
-    label.new(time, math.avg(high, low), "London\nOpen", xloc.bar_time, yloc.price, color=color.new(liqColor, 90), textcolor=color.white, style=label.style_label_left, size=size.small)
+    line.new(time, low - atr_liq * 2, time, high + atr_liq * 2, xloc.bar_time, extend=extend.none, color=liqColor, width=1, style=line.style_dashed)
+    if eqTX
+        label.new(time, math.avg(high, low), 'LO', xloc.bar_time, color = #00000000, textcolor = liqColor, style = label.style_label_left, size = size.tiny)
 
 if preNY and not preNY[1] and liqLabels
-    line.new(time, low - atr_liq * 2, time, high + atr_liq * 2, xloc.bar_time, extend=extend.right, color=liqColor, width=1, style=line.style_dashed)
-    label.new(time, math.avg(high, low), "Pre-NY", xloc.bar_time, yloc.price, color=color.new(liqColor, 90), textcolor=color.white, style=label.style_label_left, size=size.small)
+    line.new(time, low - atr_liq * 2, time, high + atr_liq * 2, xloc.bar_time, extend=extend.none, color=liqColor, width=1, style=line.style_dashed)
+    if eqTX
+        label.new(time, math.avg(high, low), 'PN', xloc.bar_time, color = #00000000, textcolor = liqColor, style = label.style_label_left, size = size.tiny)
 
 if nyOpen and not nyOpen[1] and liqLabels
-    line.new(time, low - atr_liq * 2, time, high + atr_liq * 2, xloc.bar_time, extend=extend.right, color=liqColor, width=1, style=line.style_dashed)
-    label.new(time, math.avg(high, low), "NY\nOpen", xloc.bar_time, yloc.price, color=color.new(liqColor, 90), textcolor=color.white, style=label.style_label_left, size=size.small)
+    line.new(time, low - atr_liq * 2, time, high + atr_liq * 2, xloc.bar_time, extend=extend.none, color=liqColor, width=1, style=line.style_dashed)
+    if eqTX
+        label.new(time, math.avg(high, low), 'NY', xloc.bar_time, color = #00000000, textcolor = liqColor, style = label.style_label_left, size = size.tiny)
 
 if nyseOpen and not nyseOpen[1] and liqLabels
-    line.new(time, low - atr_liq * 2, time, high + atr_liq * 2, xloc.bar_time, extend=extend.right, color=liqColor, width=1, style=line.style_dashed)
-    label.new(time, math.avg(high, low), "NYSE\nOpen", xloc.bar_time, yloc.price, color=color.new(liqColor, 90), textcolor=color.white, style=label.style_label_left, size=size.small)
+    line.new(time, low - atr_liq * 2, time, high + atr_liq * 2, xloc.bar_time, extend=extend.none, color=liqColor, width=1, style=line.style_dashed)
+    if eqTX
+        label.new(time, math.avg(high, low), 'NYSE', xloc.bar_time, color = #00000000, textcolor = liqColor, style = label.style_label_left, size = size.tiny)
 
 if londonClose and not londonClose[1] and liqLabels
-    line.new(time, low - atr_liq * 2, time, high + atr_liq * 2, xloc.bar_time, extend=extend.right, color=liqColor, width=1, style=line.style_dashed)
-    label.new(time, math.avg(high, low), "London\nClose", xloc.bar_time, yloc.price, color=color.new(liqColor, 90), textcolor=color.white, style=label.style_label_left, size=size.small)
+    line.new(time, low - atr_liq * 2, time, high + atr_liq * 2, xloc.bar_time, extend=extend.none, color=liqColor, width=1, style=line.style_dashed)
+    if eqTX
+        label.new(time, math.avg(high, low), 'LC', xloc.bar_time, color = #00000000, textcolor = liqColor, style = label.style_label_left, size = size.tiny)
 
 // Moving Averages
 //------------------------------------------------------------------------------
