@@ -134,10 +134,12 @@ fvgTX   = input.bool(true, 'Show FVGs Text', group = grp_fvg)
 fvgSessionsOnly = input.bool(false, 'Sessions Only', group = grp_fvg)
 fvgR    = input.bool(true, 'Remove Mitigated FVGs', group = grp_fvg)
 fvgE    = input.bool(true, 'Extend FVGs', group = grp_fvg, tooltip = extTT)
-fvgTH   = input.float(1.2, 'FVG Width Filter', minval = 0, step = .1, tooltip = fvgTT, group = grp_fvg, display = disp)
+fvgTH   = input.float(0.1, 'FVG Width Filter', minval = 0, step = .1, tooltip = fvgTT, group = grp_fvg, display = disp)
 fvgDO   = input.string('First', 'Display FVGs', options = ['All', 'First', 'Last'], group = grp_fvg, display = disp)
 fvgBC   = input(color.new(#02c80a, 90), 'Bullish Imbalance', group = grp_fvg)
 fvgSC   = input(color.new(#5e2395, 80), 'Bearish Imbalance', group = grp_fvg)
+fvgSkipMOG = input.bool(true, 'Skip Market Open Gaps (Avoid MOG Overlap)', group = grp_fvg)
+fvgMOGBuffer = input.int(30, 'FVG MOG Buffer (minutes)', minval = 0, maxval = 60, step = 5, tooltip = 'Minutes before/after market open to skip FVGs', group = grp_fvg)
 
 
 //------------------------------------------------------------------------------
@@ -210,6 +212,7 @@ sma200_color = input.color(color.new(#02c80a, 0), "200 SMA", group=grp_ma)
 grp_liq = "💧 Liquidity Timing Settings"
 liqSH = input.bool(true, "Liquidity Timing", group=grp_liq)
 liqLabels = input.bool(true, "Show Liq Labels", group=grp_liq)
+liqTF = input.int(5, 'Display Liquidity within Timeframes Up To', options = [1, 3, 5, 15, 30, 45, 60], group = grp_liq, display = disp)
 liqColor = input(color.new(#e65704, 19), "Liq Color", group=grp_liq)
 preAsianSH = input.bool(true, "Pre-Asian", inline="prea", group=grp_liq)
 preAsianS = input.session("1800-2000", "", inline="prea", group=grp_liq)
@@ -325,7 +328,7 @@ tfM = timeframe.multiplier   // Current timeframe multiplier
 // All sessions use UTC-4/UTC-5 timezone alignment
 
 sydney   = not na(time(timeframe.period, sydneyS , 'UTC-4')) and sydneySH and tfM <= kzSH
-asian    = not na(time(timeframe.period, asS     , 'UTC-4')) and asSH    and tfM <= kzSH
+asian    = not na(time(timeframe.period, asianOpenS, 'UTC-4')) and asSH    and tfM <= kzSH
 london   = not na(time(timeframe.period, ldnOS   , 'UTC-4')) and ldnOSH  and tfM <= kzSH
 nyam     = not na(time(timeframe.period, nyS     , 'UTC-4')) and nySH    and tfM <= kzSH
 nypm     = not na(time(timeframe.period, nyPMS   , 'UTC-4')) and nyPMH   and tfM <= kzSH
@@ -349,8 +352,6 @@ var aMSS = array.new<MSS>(0)
 var pivotPoint pp = pivotPoint.new()
 var shift = 0
 
-var bFVG = array.new<FVG>(0)
-var aFVG = array.new<FVG>(0)
 fvgATR = nz(ta.atr(144)) * fvgTH
 
 var bMOG = array.new<box>(0)
@@ -377,15 +378,25 @@ var LiqLine londonCloseLine= LiqLine.new(na)   // London Close liquidity marker
 
 atr_liq = ta.atr(14)  // ATR for liquidity line sizing
 
-// Session activation flags - only activate when session is active and settings enabled
-preAsian = liqSH and preAsianSH and not na(time(timeframe.period, preAsianS, "UTC-4"))
-asianOpen = liqSH and asianOpenSH and not na(time(timeframe.period, asianOpenS, "UTC-4"))
-preLondon = liqSH and preLondonSH and not na(time(timeframe.period, preLondonS, "UTC-4"))
-londonOpen = liqSH and londonOpenSH and not na(time(timeframe.period, londonOpenS, "UTC-4"))
-preNY = liqSH and preNYSH and not na(time(timeframe.period, preNYS, "UTC-5"))
-nyOpen = liqSH and nyOpenSH and not na(time(timeframe.period, nyOpenS, "UTC-5"))
-nyseOpen = liqSH and nyseSH and not na(time(timeframe.period, nyseS, "UTC-5"))
-londonClose = liqSH and londonCloseSH and not na(time(timeframe.period, londonCloseS, "UTC-5"))
+// Session activation flags for line drawing - only activate when session is active, settings enabled, and timeframe <= M5
+preAsian = liqSH and preAsianSH and not na(time(timeframe.period, preAsianS, "UTC-4")) and tfM <= liqTF
+asianOpen = liqSH and asianOpenSH and not na(time(timeframe.period, asianOpenS, "UTC-4")) and tfM <= liqTF
+preLondon = liqSH and preLondonSH and not na(time(timeframe.period, preLondonS, "UTC-4")) and tfM <= liqTF
+londonOpen = liqSH and londonOpenSH and not na(time(timeframe.period, londonOpenS, "UTC-4")) and tfM <= liqTF
+preNY = liqSH and preNYSH and not na(time(timeframe.period, preNYS, "UTC-5")) and tfM <= liqTF
+nyOpen = liqSH and nyOpenSH and not na(time(timeframe.period, nyOpenS, "UTC-5")) and tfM <= liqTF
+nyseOpen = liqSH and nyseSH and not na(time(timeframe.period, nyseS, "UTC-5")) and tfM <= liqTF
+londonClose = liqSH and londonCloseSH and not na(time(timeframe.period, londonCloseS, "UTC-5")) and tfM <= liqTF
+
+// Session activation flags for dashboard - work on all timeframes
+preAsianDash = liqSH and preAsianSH and not na(time(timeframe.period, preAsianS, "UTC-4"))
+asianOpenDash = liqSH and asianOpenSH and not na(time(timeframe.period, asianOpenS, "UTC-4"))
+preLondonDash = liqSH and preLondonSH and not na(time(timeframe.period, preLondonS, "UTC-4"))
+londonOpenDash = liqSH and londonOpenSH and not na(time(timeframe.period, londonOpenS, "UTC-4"))
+preNYDash = liqSH and preNYSH and not na(time(timeframe.period, preNYS, "UTC-5"))
+nyOpenDash = liqSH and nyOpenSH and not na(time(timeframe.period, nyOpenS, "UTC-5"))
+nyseOpenDash = liqSH and nyseSH and not na(time(timeframe.period, nyseS, "UTC-5"))
+londonCloseDash = liqSH and londonCloseSH and not na(time(timeframe.period, londonCloseS, "UTC-5"))
 
 //------------------------------------------------------------------------------
 // TECHNICAL INDICATOR CALCULATIONS
@@ -397,86 +408,16 @@ mss_pivot_low = ta.pivotlow(mssLN, mssLN)    // MSS low pivot detection
 eq_atr = ta.atr(200)                        // ATR for EQH/EQL threshold
 day_change = timeframe.change('1D')         // Daily change trigger for MOG
 
+// FVG MOG buffer calculations (global variables to avoid warnings)
+asianOpenBars = ta.barssince(not na(time(timeframe.period, asianOpenS, "UTC-4")))
+londonOpenBars = ta.barssince(not na(time(timeframe.period, londonOpenS, "UTC-4")))
+nyOpenBars = ta.barssince(not na(time(timeframe.period, nyOpenS, "UTC-5")))
+nyseOpenBars = ta.barssince(not na(time(timeframe.period, nyseS, "UTC-5")))
+
 //------------------------------------------------------------------------------
 // CORE FUNCTIONS AND METHODS
 //------------------------------------------------------------------------------
 // Main processing functions for each indicator component
-pFVG(_s, _h, _l, _c, _i, _atr, _fR, _fE, _fD, _fTX, _fbC, _faC) =>
-    // Clean FVG logic inspired by clark_smc.pine
-    // Single box per gap, proper mitigation (low <= bottom bull, high >= top bear)
-    
-    var bool bull_first = true, var bool bear_first = true
-    
-    if _s and not _s[1]
-        bull_first := true
-        bear_first := true
-        if _fE
-            array.clear(bFVG)
-            array.clear(aFVG)
-
-    bullGap = _l > _h[2] 
-    bearGap = _h < _l[2]
-
-    if bullGap and _s and bull_first
-        gap_top = _l
-        gap_bottom = _h[2]
-        fvg_box = box.new(_i-2, gap_top, _i, gap_bottom, 
-            bgcolor=_fbC, border_color=_fbC,
-            text=_fTX ? 'FVG' : na, text_size=size.tiny,
-            text_color=color.white, text_halign=text.align_center)
-        array.unshift(bFVG, FVG.new(fvg_box, true))
-        
-        if _fD == 'First'
-            bull_first := false
-
-    if bearGap and _s and bear_first
-        gap_top = _l[2]
-        gap_bottom = _h
-        fvg_box = box.new(_i-2, gap_top, _i, gap_bottom, 
-            bgcolor=_faC, border_color=_faC,
-            text=_fTX ? 'FVG' : na, text_size=size.tiny,
-            text_color=color.white, text_halign=text.align_center)
-        array.unshift(aFVG, FVG.new(fvg_box, true))
-        
-        if _fD == 'First'
-            bear_first := false
-
-    // Extension and mitigation
-    if _fE or _s
-        // Bullish FVGs mitigation: low <= gap_bottom
-        if array.size(bFVG) > 0
-            for j = array.size(bFVG) - 1 to 0
-                fvg = array.get(bFVG, j)
-                if not na(fvg.bx)
-                    fvg_bottom = box.get_bottom(fvg.bx)
-                    mitigated = fvg.e and _l <= fvg_bottom
-                    
-                    if mitigated
-                        if _fR
-                            box.delete(fvg.bx)
-                        fvg.e := false
-                    else if fvg.e
-                        box.set_right(fvg.bx, _i)
-
-        // Bearish FVGs mitigation: high >= gap_top  
-        if array.size(aFVG) > 0
-            for j = array.size(aFVG) - 1 to 0
-                fvg = array.get(aFVG, j)
-                if not na(fvg.bx)
-                    fvg_top = box.get_top(fvg.bx)
-                    mitigated = fvg.e and _h >= fvg_top
-                    
-                    if mitigated
-                        if _fR
-                            box.delete(fvg.bx)
-                        fvg.e := false
-                    else if fvg.e
-                        box.set_right(fvg.bx, _i)
-
-    // Cleanup if not extending
-    if not _fE
-        array.clear(bFVG)
-        array.clear(aFVG)
 
 method pDWM(DWM _id, _tC, _t, _o, _cl, _lbTX, _olL) =>
     if _tC
@@ -920,16 +861,29 @@ eq_btm = ta.pivotlow(eqLen, eqLen)    // Low pivot detection
 // Independent FVG detection to prevent overlap with other gap types
 // Uses ATR-based filtering for cleaner visualization
 
-// Bullish FVG detection: current low > high of 2 bars ago
-if fvgSH and fvgSessionsOnly == false
+//Fair Value Gaps - Use time buffer around MOG creation to prevent overlap
+// For Sessions Only, check if current time is within any killzone session
+inSessionTime = not na(time(timeframe.period, sydneyS, 'UTC-4')) and sydneySH or 
+               not na(time(timeframe.period, asianOpenS, 'UTC-4')) and asSH or
+               not na(time(timeframe.period, ldnOS, 'UTC-4')) and ldnOSH or
+               not na(time(timeframe.period, nyS, 'UTC-4')) and nySH or
+               not na(time(timeframe.period, nyPMS, 'UTC-4')) and nyPMH
+
+sessionCondition = fvgSessionsOnly ? inSessionTime : true
+// More precise overlap prevention - block FVGs during and shortly after MOG creation
+// Extended buffer to prevent timing-related overlaps
+var int mogBarsSince = 0
+mogBarsSince := ta.barssince(day_change and not day_change[1])
+mogBufferActive = fvgSkipMOG and (day_change or mogBarsSince <= 2)
+
+
+if fvgSH and sessionCondition and not mogBufferActive
     gapSize = low - high[2]
-    if gapSize > fvgATR  // Filter by ATR threshold
+    if gapSize > fvgATR
         box.new(bar_index-2, low, bar_index + 20, high[2], bgcolor=fvgBC, border_color=fvgBC, text=fvgTX ? 'FVG' : na, text_size=size.tiny, text_color=color.new(#02c80a, 0))
     
-// Bearish FVG detection: current high < low of 2 bars ago
 bearGapSize = low[2] - high
-if fvgSH and fvgSessionsOnly == false and bearGapSize > fvgATR
-    // Create a box to visualize the bearish FVG
+if fvgSH and sessionCondition and not mogBufferActive and bearGapSize > fvgATR
     box.new(bar_index-2, low[2], bar_index + 20, high, bgcolor=fvgSC, border_color=fvgSC, text=fvgTX ? 'FVG' : na, text_size=size.tiny, text_color=color.new(#5e2395, 0))
 
 //------------------------------------------------------------------------------
@@ -975,29 +929,29 @@ if mogSH and day_change and not day_change[1]
     if low > high[1]
         mog_box = box.new(bar_index[1], low, bar_index, high[1], bgcolor=mogBC, border_color=mogBC, text=mogTX ? 'GAP↑' : na, text_size=size.tiny, text_color=color.new(#02c80a, 0))
         array.unshift(bMOG, mog_box)
-        
-        // Bearish MOG: high < low[1]
-        if high < low[1]
-            mog_box = box.new(bar_index[1], low[1], bar_index, high, bgcolor=mogSC, border_color=mogSC, text=mogTX ? 'GAP↓' : na, text_size=size.tiny, text_color=color.new(#5e2395, 0))
-            array.unshift(aMOG, mog_box)
+    
+    // Bearish MOG: gap down (current high < previous day low)
+    if high < low[1]
+        mog_box = box.new(bar_index[1], low[1], bar_index, high, bgcolor=mogSC, border_color=mogSC, text=mogTX ? 'GAP↓' : na, text_size=size.tiny, text_color=color.new(#5e2395, 0))
+        array.unshift(aMOG, mog_box)
 
-    // Extend and mitigate MOG
-    if mogE
-        // Bullish MOG mitigation: low <= box bottom
-        if array.size(bMOG) > 0
-            for j = array.size(bMOG) - 1 to 0
-                bx = array.get(bMOG, j)
-                if low <= box.get_bottom(bx)
-                    box.set_right(bx, bar_index)
-                    array.remove(bMOG, j)
-        
-        // Bearish MOG mitigation: high >= box top
-        if array.size(aMOG) > 0
-            for j = array.size(aMOG) - 1 to 0
-                bx = array.get(aMOG, j)
-                if high >= box.get_top(bx)
-                    box.set_right(bx, bar_index)
-                    array.remove(aMOG, j)
+// MOG extension and mitigation logic
+if mogE
+    // Bullish MOG mitigation: low <= box bottom
+    if array.size(bMOG) > 0
+        for j = array.size(bMOG) - 1 to 0
+            bx = array.get(bMOG, j)
+            if low <= box.get_bottom(bx)
+                box.set_right(bx, bar_index)
+                array.remove(bMOG, j)
+    
+    // Bearish MOG mitigation: high >= box top
+    if array.size(aMOG) > 0
+        for j = array.size(aMOG) - 1 to 0
+            bx = array.get(aMOG, j)
+            if high >= box.get_top(bx)
+                box.set_right(bx, bar_index)
+                array.remove(aMOG, j)
 
 //------------------------------------------------------------------------------
 // LIQUIDITY TIMING - VERTICAL MARKERS
@@ -1066,6 +1020,7 @@ plot(show_ma ? ta.ema(close, 21) : na, "21 EMA", ema21_color, linestyle=plot.lin
 plot(show_ma ? ta.sma(close, 50) : na, "50 SMA", sma50_color)  // Medium-term trend
 plot(show_ma ? ta.sma(close, 200) : na, "200 SMA", sma200_color)  // Long-term trend
 
+
 //------------------------------------------------------------------------------
 // REAL-TIME DASHBOARD & INDICATORS
 //------------------------------------------------------------------------------
@@ -1081,8 +1036,8 @@ if barstate.islast
     // Determine current active trading session
     current_session = nyam ? "NY AM" : nypm ? "NY PM" : london ? "London" : asian ? "Asia" : sydney ? "Sydney" : "None"
     
-    // Determine current liquidity timing event
-    current_liq = londonClose ? "London Close" : nyseOpen ? "NYSE Open" : nyOpen ? "NY Open" : preNY ? "Pre-NY" : londonOpen ? "London Open" : preLondon ? "Pre-London" : asianOpen ? "Asian Open" : preAsian ? "Pre-Asian" : "None"
+    // Determine current liquidity timing event (uses dashboard variables that work on all timeframes)
+    current_liq = londonCloseDash ? "London Close" : nyseOpenDash ? "NYSE Open" : nyOpenDash ? "NY Open" : preNYDash ? "Pre-NY" : londonOpenDash ? "London Open" : preLondonDash ? "Pre-London" : asianOpenDash ? "Asian Open" : preAsianDash ? "Pre-Asian" : "None"
     
     // Populate dashboard cells with market information
     // Row 0: Asset Information
@@ -1099,4 +1054,4 @@ if barstate.islast
     
     // Row 0: Liquidity Information
     table.cell(tbl, 6, 0, "Volume", text_color=color.rgb(255, 255, 255, 50))  // Header
-    table.cell(tbl, 7, 0, current_liq, text_color=color.purple)  // Current liquidity event
+    table.cell(tbl, 7, 0, current_liq, text_color=color.purple)  // Current liquidity event (shows on all timeframes)
