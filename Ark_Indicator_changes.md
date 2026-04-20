@@ -1,5 +1,37 @@
 # Ark Indicator - CHANGELOG
 
+## v2.1.0 (FVG-MOG Overlap Prevention) - April 2026
+**Status**: Production Ready with Complete Overlap Solution
+
+### Key Changes:
+- **FVG-MOG Overlap Prevention**: Implemented time-based buffer around MOG creation
+- **Skip Market Open Gaps Toggle**: New setting to enable/disable overlap prevention
+- **Code Cleanup**: Removed non-working sessions only toggle and related code
+- **Production Optimization**: Cleaned up unused variables and comments
+- **Documentation Updated**: README and changelog reflect final implementation
+
+### Technical Implementation:
+```
+FVG-MOG Overlap Prevention:
+- [x] Time-based buffer using day_change trigger
+- [x] 2-bar buffer after MOG creation (day_change or barsSince <= 2)
+- [x] Toggle control: "Skip Market Open Gaps (Avoid MOG Overlap)"
+- [x] Maintains normal FVG functionality outside buffer periods
+- [x] No false positives or runtime errors
+
+Code Cleanup:
+- [x] Removed fvgSessionsOnly toggle and sessionCondition logic
+- [x] Removed unused fvgMOGBuffer input parameter
+- [x] Cleaned up redundant comments and variables
+- [x] Simplified FVG creation conditions
+
+Production Ready:
+- [x] All syntax errors resolved
+- [x] No compilation warnings
+- [x] Clean, maintainable code structure
+- [x] Comprehensive documentation updates
+```
+
 ## v2.0.0 (Dashboard & Liquidity Enhancement) - April 2026
 **Status**: Production Ready with Enhanced Features
 

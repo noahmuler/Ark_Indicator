@@ -19,7 +19,7 @@
 ### 🚀 Key Features
 - **Session Killzones** - Sydney/Asia/London/NY AM/PM with customizable boundaries
 - **Order Blocks & Breaker Blocks** - Institutional liquidity zones with mitigation detection
-- **Fair Value Gaps (FVG)** - ATR-filtered imbalance detection with independent logic
+- **Fair Value Gaps (FVG)** - ATR-filtered imbalance detection with MOG overlap prevention
 - **Market Structure Shifts (MSS/CHoCH)** - Pivot-based structure change identification
 - **Equal Highs/Lows (EQH/EQL)** - Threshold-based support/resistance zones
 - **Market Open Gaps (MOG)** - Daily gap detection with extension logic
@@ -100,7 +100,7 @@ ATR Periods: 14 (liquidity), 144 (FVG), 200 (EQH/EQL)
 - **Update Frequency**: Real-time (tick-by-tick)
 
 ### 🔍 Detection Logic
-- **FVG**: Independent gap detection (`low > high[2]`, `high < low[2]`)
+- **FVG**: Independent gap detection with MOG overlap prevention (`low > high[2]`, `high < low[2]`)
 - **MOG**: Daily open gaps via `day_change` trigger
 - **MSS**: Pivot-based structure changes (killzones only)
 - **EQH/EQL**: ATR threshold comparison
@@ -116,16 +116,16 @@ ATR Periods: 14 (liquidity), 144 (FVG), 200 (EQH/EQL)
 
 ### 🎉 Completed Features
 ```
-✅ Market Structure Shifts (MSS) - Perfect
-✅ Equal Highs/Lows (EQH/EQL) - Perfect
-✅ Market Open Gaps (MOG) - Perfect
-✅ Order Blocks & Breaker Blocks - Perfect
-✅ Moving Averages (21/50/200) - Perfect
-✅ Fair Value Gaps (FVG) - No MOG overlap
-✅ Liquidity Timing Lines - Vertical markers
-✅ Dashboard & Indicators - Real-time display
-✅ Session Killzones - Full implementation
-✅ Documentation - Production ready
+Market Structure Shifts (MSS) - Perfect
+Equal Highs/Lows (EQH/EQL) - Perfect
+Market Open Gaps (MOG) - Perfect
+Order Blocks & Breaker Blocks - Perfect
+Moving Averages (21/50/200) - Perfect
+Fair Value Gaps (FVG) - MOG overlap prevention active
+Liquidity Timing Lines - Vertical markers
+Dashboard & Indicators - Real-time display
+Session Killzones - Full implementation
+Documentation - Production ready
 ```
 
 ### 📋 Deployment Checklist
